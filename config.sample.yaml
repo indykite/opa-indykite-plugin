@@ -1,0 +1,35 @@
+---
+services:
+    acmecorp:
+        url: https://example.com/control-plane-api/v1
+        credentials:
+            bearer:
+                token: bGFza2RqZmxha3NkamZsa2Fqc2Rsa2ZqYWtsc2RqZmtramRmYWxkc2tm
+            OFFclient_tls:
+                cert: ../../client.pem
+                private_key: ../../client.key
+
+labels:
+    app: myapp
+    region: west
+    environment: production
+
+decision_logs:
+    plugin: indykite_plugin
+    reporting:
+        min_delay_seconds: 300
+        max_delay_seconds: 600
+
+plugins:
+    indykite_plugin:
+        use_env_variables: false
+        app_agent_id: PUT_AGENT_ID_HERE
+        endpoint: jarvis.indykite.com
+        private_key_jwk: PUT_JWK_HERE
+
+default_decision: /http/example/authz/allow
+
+keys:
+    global_key:
+        algorithm: RS256
+        key: <PEM_encoded_public_key>
