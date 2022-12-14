@@ -50,10 +50,10 @@ var _ = Describe("indy.identity", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockIdentityClient = identitym.NewMockIdentityManagementAPIClient(mockCtrl)
 		client, _ := identity.NewTestClient(mockIdentityClient)
-		oldConnection = functions.OverrideClient(client)
+		oldConnection = functions.OverrideIdentityClient(client)
 	})
 	AfterEach(func() {
-		functions.OverrideClient(oldConnection)
+		functions.OverrideIdentityClient(oldConnection)
 	})
 
 	It("Handle missing TokenInfo, when active = false", func() {

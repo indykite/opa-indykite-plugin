@@ -19,9 +19,10 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/indykite/jarvis-sdk-go/authorization"
+	authorizationpb "github.com/indykite/jarvis-sdk-go/gen/indykite/authorization/v1beta1"
 	identitypb "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta1"
-	"github.com/indykite/jarvis-sdk-go/identity"
-	identitym "github.com/indykite/jarvis-sdk-go/test/identity/v1beta1"
+	authorizationm "github.com/indykite/jarvis-sdk-go/test/authorization/v1beta1"
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/pborman/uuid"
 	"google.golang.org/grpc/codes"
@@ -38,19 +39,19 @@ import (
 
 var _ = Describe("indy.is_authorized", func() {
 	var (
-		mockCtrl           *gomock.Controller
-		mockIdentityClient *identitym.MockIdentityManagementAPIClient
-		oldConnection      *identity.Client
+		mockCtrl                *gomock.Controller
+		mockAuthorizationClient *authorizationm.MockAuthorizationAPIClient
+		oldConnection           *authorization.Client
 	)
 
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
-		mockIdentityClient = identitym.NewMockIdentityManagementAPIClient(mockCtrl)
-		client, _ := identity.NewTestClient(mockIdentityClient)
-		oldConnection = functions.OverrideClient(client)
+		mockAuthorizationClient = authorizationm.NewMockAuthorizationAPIClient(mockCtrl)
+		client, _ := authorization.NewClientFromGRPCClient(mockAuthorizationClient)
+		oldConnection = functions.OverrideAuthorizationClient(client)
 	})
 	AfterEach(func() {
-		functions.OverrideClient(oldConnection)
+		functions.OverrideAuthorizationClient(oldConnection)
 	})
 
 	type dtIDCase struct {
@@ -63,19 +64,19 @@ var _ = Describe("indy.is_authorized", func() {
 	}
 	DescribeTable("Call with DT Identifier as",
 		func(c *dtIDCase) {
-			mockIdentityClient.EXPECT().IsAuthorized(
+			mockAuthorizationClient.EXPECT().IsAuthorized(
 				gomock.Any(),
-				WrapMatcher(EqualProto(&identitypb.IsAuthorizedRequest{
+				WrapMatcher(EqualProto(&authorizationpb.IsAuthorizedRequest{
 					Subject: c.reqSubject,
 					Actions: []string{"READ"},
-					Resources: []*identitypb.IsAuthorizedRequest_Resource{
+					Resources: []*authorizationpb.IsAuthorizedRequest_Resource{
 						{Id: "res1", Label: "Label"},
 						{Id: "res2", Label: "Label"},
 					},
 				})),
-			).Return(&identitypb.IsAuthorizedResponse{
+			).Return(&authorizationpb.IsAuthorizedResponse{
 				DecisionTime: c.respDecisionTime,
-				Decisions: map[string]*identitypb.AuthorizationDecision{
+				Decisions: map[string]*authorizationpb.AuthorizationDecision{
 					"res1": {AllowAction: map[string]bool{"READ": true}},
 					"res2": {AllowAction: map[string]bool{"READ": true}},
 				},
@@ -207,7 +208,7 @@ var _ = Describe("indy.is_authorized", func() {
 
 	It("Service backend error", func() {
 		ctx := context.Background()
-		mockIdentityClient.EXPECT().
+		mockAuthorizationClient.EXPECT().
 			IsAuthorized(gomock.Any(), gomock.Any()).
 			Times(2).
 			Return(nil, status.Error(codes.Internal, "oops"))
@@ -239,7 +240,7 @@ var _ = Describe("indy.is_authorized", func() {
 	It("Fail to create client", func() {
 		ctx := context.Background()
 
-		functions.OverrideClient(nil)
+		functions.OverrideAuthorizationClient(nil)
 
 		// With StrictBuiltinErrors
 		r := rego.New(

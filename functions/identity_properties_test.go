@@ -50,10 +50,10 @@ var _ = Describe("indy.identity_properties", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockIdentityClient = identitym.NewMockIdentityManagementAPIClient(mockCtrl)
 		client, _ := identity.NewTestClient(mockIdentityClient)
-		oldConnection = functions.OverrideClient(client)
+		oldConnection = functions.OverrideIdentityClient(client)
 	})
 	AfterEach(func() {
-		functions.OverrideClient(oldConnection)
+		functions.OverrideIdentityClient(oldConnection)
 	})
 
 	It("Handle attributes from TokenInfo and Properties", func() {
