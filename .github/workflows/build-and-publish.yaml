@@ -108,13 +108,13 @@ jobs:
                   ref: master
                   repository: indykite/notifier-action
                   path: notifier-action
-                  token: ${{ secrets.INDYKITE_PAT }}
+                  token: ${{ secrets.INDYKITEONE_PAT }}
 
             - name: Trigger new OPA test image build
               uses: ./notifier-action/
               with:
                   image_tag: ${{ env.SHORT_SHA }}
-                  token: ${{ secrets.INDYKITE_PAT }}
+                  token: ${{ secrets.INDYKITEONE_PAT }}
                   owner: indykite
                   repo: jarvis-opa-test
                   workflow_id: dev-build-test-opa.yaml
