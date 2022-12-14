@@ -16,7 +16,8 @@ package functions
 
 import (
 	"github.com/indykite/jarvis-sdk-go/errors"
-	identity "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta1"
+	authorizationpb "github.com/indykite/jarvis-sdk-go/gen/indykite/authorization/v1beta1"
+	identitypb "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta1"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/open-policy-agent/opa/topdown/builtins"
@@ -61,7 +62,7 @@ func init() {
 		},
 		func(bCtx rego.BuiltinContext, dtIdentifier, actions, resourceRefs *ast.Term) (*ast.Term, error) {
 			var err error
-			req := &identity.IsAuthorizedRequest{}
+			req := &authorizationpb.IsAuthorizedRequest{}
 
 			req.Subject, err = extractDigitalTwinIdentifier(dtIdentifier.Value, 1)
 			if err != nil {
@@ -74,11 +75,11 @@ func init() {
 				return nil, err
 			}
 
-			client, err := Client(bCtx.Context)
+			client, err := AuthorizationClient(bCtx.Context)
 			if err != nil {
 				return nil, err
 			}
-			var resp *identity.IsAuthorizedResponse
+			var resp *authorizationpb.IsAuthorizedResponse
 			resp, err = client.IsAuthorizedWithRawRequest(bCtx.Context, req)
 			var obj ast.Object
 
@@ -96,10 +97,10 @@ func init() {
 	)
 }
 
-func extractDigitalTwinIdentifier(identifierValue ast.Value, pos int) (*identity.DigitalTwinIdentifier, error) {
+func extractDigitalTwinIdentifier(identifierValue ast.Value, pos int) (*identitypb.DigitalTwinIdentifier, error) {
 	switch identifier := identifierValue.(type) {
 	case ast.String:
-		return &identity.DigitalTwinIdentifier{Filter: &identity.DigitalTwinIdentifier_AccessToken{
+		return &identitypb.DigitalTwinIdentifier{Filter: &identitypb.DigitalTwinIdentifier_AccessToken{
 			AccessToken: string(identifier),
 		}}, nil
 	case ast.Object:
@@ -114,15 +115,15 @@ func extractDigitalTwinIdentifier(identifierValue ast.Value, pos int) (*identity
 		if err != nil {
 			return nil, builtins.NewOperandErr(pos, "tenant_id: "+err.Error())
 		}
-		return &identity.DigitalTwinIdentifier{Filter: &identity.DigitalTwinIdentifier_DigitalTwin{
-			DigitalTwin: &identity.DigitalTwin{Id: dtID, TenantId: tenantID},
+		return &identitypb.DigitalTwinIdentifier{Filter: &identitypb.DigitalTwinIdentifier_DigitalTwin{
+			DigitalTwin: &identitypb.DigitalTwin{Id: dtID, TenantId: tenantID},
 		}}, nil
 	}
 	// Next line is unreachable. OPA will complain based on declaration of function, when types do not match.
 	return nil, builtins.NewOperandTypeErr(pos, identifierValue, "string", "object")
 }
 
-func buildIsAuthorizedObjectFromResponse(resp *identity.IsAuthorizedResponse) ast.Object {
+func buildIsAuthorizedObjectFromResponse(resp *authorizationpb.IsAuthorizedResponse) ast.Object {
 	decisions := ast.NewObject()
 
 	for resRef, dec := range resp.Decisions {

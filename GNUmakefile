@@ -33,6 +33,8 @@ test:
 upgrade:
 	@echo "==> Upgrading"
 	@GO111MODULE=on go get -u all && go mod tidy
+	@echo "==> Upgrading pre-commit"
+	@pre-commit autoupdate
 
 tidy:
 	@GO111MODULE=on go mod tidy

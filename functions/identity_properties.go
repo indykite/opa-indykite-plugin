@@ -45,7 +45,7 @@ func init() {
 				return nil, err
 			}
 
-			client, err := Client(bCtx.Context)
+			client, err := IdentityClient(bCtx.Context)
 			if err != nil {
 				return nil, err
 			}

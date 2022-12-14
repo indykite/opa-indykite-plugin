@@ -20,6 +20,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/indykite/jarvis-sdk-go/authorization"
 	api "github.com/indykite/jarvis-sdk-go/grpc"
 	"github.com/indykite/jarvis-sdk-go/grpc/config"
 	"github.com/indykite/jarvis-sdk-go/identity"
@@ -55,10 +56,11 @@ type (
 
 	// IndyKitePlugin defines internal structure of OPA Plugin.
 	IndyKitePlugin struct {
-		manager *plugins.Manager
-		config  *Config
-		client  *identity.Client
-		mtx     sync.Mutex
+		manager             *plugins.Manager
+		config              *Config
+		identityClient      *identity.Client
+		authorizationClient *authorization.Client
+		mtx                 sync.Mutex
 	}
 )
 
@@ -112,9 +114,16 @@ func (p *IndyKitePlugin) Start(ctx context.Context) (err error) {
 	} else {
 		options = append(options, api.WithCredentialsLoader(config.StaticCredentialConfig(p.config.credConfig)))
 	}
-	p.client, err = identity.NewClient(ctx, options...)
+	p.identityClient, err = identity.NewClient(ctx, options...)
 	if err != nil {
-		logrus.WithError(err).WithFields(logrus.Fields{"plugin": PluginName}).Info("failed to connect to IndyKite")
+		logrus.WithError(err).WithFields(logrus.Fields{"plugin": PluginName}).
+			Info("failed to connect to IndyKite Identity client")
+		return err
+	}
+	p.authorizationClient, err = authorization.NewClient(ctx, options...)
+	if err != nil {
+		logrus.WithError(err).WithFields(logrus.Fields{"plugin": PluginName}).
+			Info("failed to connect to IndyKite Authorization client")
 		return err
 	}
 	lock.Lock()
@@ -147,7 +156,12 @@ func (p *IndyKitePlugin) Log(ctx context.Context, event logs.EventV1) error {
 	return nil
 }
 
-// Client returns IndyKite identity client created from plugin configuration.
-func (p *IndyKitePlugin) Client() *identity.Client {
-	return p.client
+// IdentityClient returns IndyKite identity client created from plugin configuration.
+func (p *IndyKitePlugin) IdentityClient() *identity.Client {
+	return p.identityClient
+}
+
+// AuthorizationClient returns IndyKite authorization client created from plugin configuration.
+func (p *IndyKitePlugin) AuthorizationClient() *authorization.Client {
+	return p.authorizationClient
 }

@@ -18,6 +18,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/indykite/jarvis-sdk-go/authorization"
 	api "github.com/indykite/jarvis-sdk-go/grpc"
 	"github.com/indykite/jarvis-sdk-go/grpc/config"
 	"github.com/indykite/jarvis-sdk-go/identity"
@@ -27,36 +28,68 @@ import (
 )
 
 var (
-	clientConn *identity.Client
-	clientMtx  sync.Mutex
+	identityClient      *identity.Client
+	authorizationClient *authorization.Client
+	clientMtx           sync.Mutex
 )
 
-// OverrideClient set and override Client Connection for OPA and return previously set connection.
-func OverrideClient(conn *identity.Client) *identity.Client {
-	oldConn := clientConn
-	clientConn = conn
+// OverrideIdentityClient set and override IdentityClient Connection for OPA and return previously set connection.
+func OverrideIdentityClient(conn *identity.Client) *identity.Client {
+	oldConn := identityClient
+	identityClient = conn
 	return oldConn
 }
 
-// Client creates IndyKite Identity client based on defined plugin or environment variables.
-func Client(ctx context.Context) (*identity.Client, error) {
-	if clientConn != nil {
-		return clientConn, nil
+// OverrideAuthorizationClient set and override AuthorizationClient Connection for OPA and return previously
+// set connection.
+func OverrideAuthorizationClient(conn *authorization.Client) *authorization.Client {
+	oldConn := authorizationClient
+	authorizationClient = conn
+	return oldConn
+}
+
+// IdentityClient creates IndyKite Identity client based on defined plugin or environment variables.
+func IdentityClient(ctx context.Context) (*identity.Client, error) {
+	if identityClient != nil {
+		return identityClient, nil
 	}
 
 	clientMtx.Lock()
 	defer clientMtx.Unlock()
 
 	if plugin := plugins.IndyKite(); plugin != nil {
-		clientConn = plugin.Client()
+		identityClient = plugin.IdentityClient()
 	} else {
 		c, err := identity.NewClient(ctx, api.WithCredentialsLoader(config.DefaultEnvironmentLoader))
 		if err != nil {
 			logrus.WithError(err).Info("failed to connect to IndyKite")
 			return nil, err
 		}
-		clientConn = c
+		identityClient = c
 	}
 
-	return clientConn, nil
+	return identityClient, nil
+}
+
+// AuthorizationClient creates IndyKite Authorization client based on defined plugin or environment variables.
+func AuthorizationClient(ctx context.Context) (*authorization.Client, error) {
+	if authorizationClient != nil {
+		return authorizationClient, nil
+	}
+
+	clientMtx.Lock()
+	defer clientMtx.Unlock()
+
+	if plugin := plugins.IndyKite(); plugin != nil {
+		authorizationClient = plugin.AuthorizationClient()
+	} else {
+		c, err := authorization.NewClient(ctx, api.WithCredentialsLoader(config.DefaultEnvironmentLoader))
+		if err != nil {
+			logrus.WithError(err).Info("failed to connect to IndyKite")
+			return nil, err
+		}
+		authorizationClient = c
+	}
+
+	return authorizationClient, nil
 }
