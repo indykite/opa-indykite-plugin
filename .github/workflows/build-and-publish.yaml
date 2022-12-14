@@ -61,7 +61,7 @@ jobs:
               uses: google-github-actions/auth@v0
               with:
                   workload_identity_provider: projects/699926043561/locations/global/workloadIdentityPools/github-dev/providers/github-dev-provider
-                  service_account: jarvis-proto@jarvis-dev-268314.iam.gserviceaccount.com
+                  service_account: opa-indykite-plugin@jarvis-dev-268314.iam.gserviceaccount.com
 
             - name: Trivy config scan
               uses: aquasecurity/trivy-action@master
@@ -81,7 +81,7 @@ jobs:
               uses: docker/login-action@v2
               with:
                   username: ${{ secrets.DOCKERHUB_USERNAME }}
-                  password: ${{ secrets.DOCKERHUB_SECRET }}
+                  password: ${{ secrets.DOCKERHUB_PAT }}
 
             - name: Build and Tag docker images
               run: |
