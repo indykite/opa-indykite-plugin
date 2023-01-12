@@ -17,12 +17,11 @@ package functions
 import (
 	"github.com/indykite/jarvis-sdk-go/errors"
 	authorizationpb "github.com/indykite/jarvis-sdk-go/gen/indykite/authorization/v1beta1"
-	identitypb "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta1"
+	identitypb "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta2"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/open-policy-agent/opa/topdown/builtins"
 	"github.com/open-policy-agent/opa/types"
-	"github.com/pborman/uuid"
 
 	"github.com/indykite/opa-indykite-plugin/utilities"
 )
@@ -64,7 +63,7 @@ func init() {
 			var err error
 			req := &authorizationpb.IsAuthorizedRequest{}
 
-			req.Subject, err = extractDigitalTwinIdentifier(dtIdentifier.Value, 1)
+			digitalTwinIdentifier, err := extractDigitalTwinIdentifier(dtIdentifier.Value, 1)
 			if err != nil {
 				return nil, err
 			}
@@ -73,6 +72,10 @@ func init() {
 			}
 			if err = ast.As(resourceRefs.Value, &req.Resources); err != nil {
 				return nil, err
+			}
+
+			req.Subject = &authorizationpb.IsAuthorizedRequest_DigitalTwinIdentifier{
+				DigitalTwinIdentifier: digitalTwinIdentifier,
 			}
 
 			client, err := AuthorizationClient(bCtx.Context)
@@ -104,19 +107,13 @@ func extractDigitalTwinIdentifier(identifierValue ast.Value, pos int) (*identity
 			AccessToken: string(identifier),
 		}}, nil
 	case ast.Object:
-		var dtID, tenantID uuid.UUID
-		var err error
+		var dtID, tenantID ast.String
 
-		dtID, err = utilities.ParseTermAsUUID(identifier.Get(ast.StringTerm("digital_twin_id")))
-		if err != nil {
-			return nil, builtins.NewOperandErr(pos, "digital_twin_id: "+err.Error())
-		}
-		tenantID, err = utilities.ParseTermAsUUID(identifier.Get(ast.StringTerm("tenant_id")))
-		if err != nil {
-			return nil, builtins.NewOperandErr(pos, "tenant_id: "+err.Error())
-		}
+		dtID = identifier.Get(ast.StringTerm("digital_twin_id")).Value.(ast.String)
+		tenantID = identifier.Get(ast.StringTerm("tenant_id")).Value.(ast.String)
+
 		return &identitypb.DigitalTwinIdentifier{Filter: &identitypb.DigitalTwinIdentifier_DigitalTwin{
-			DigitalTwin: &identitypb.DigitalTwin{Id: dtID, TenantId: tenantID},
+			DigitalTwin: &identitypb.DigitalTwin{Id: string(dtID), TenantId: string(tenantID)},
 		}}, nil
 	}
 	// Next line is unreachable. OPA will complain based on declaration of function, when types do not match.

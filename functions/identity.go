@@ -18,7 +18,7 @@ import (
 	"fmt"
 
 	"github.com/indykite/jarvis-sdk-go/errors"
-	identity "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta1"
+	identity "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta2"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/open-policy-agent/opa/types"
@@ -71,43 +71,14 @@ func init() {
 func fillAstWithTokenInfo(obj ast.Object, resp *identity.IdentityTokenInfo) error {
 	exp, _ := ast.InterfaceToValue(resp.GetExpireTime().AsTime().Unix())
 	obj.Insert(ast.StringTerm("expire"), ast.NewTerm(exp))
-
-	customerID, err := utilities.GetOptionalUUID(resp.CustomerId)
-	if err != nil {
-		return fmt.Errorf("cannot parse CustomerId UUID: %v", err)
-	}
-	obj.Insert(ast.StringTerm("customerId"), ast.StringTerm(customerID))
-
-	appSpaceID, err := utilities.GetOptionalUUID(resp.AppSpaceId)
-	if err != nil {
-		return fmt.Errorf("cannot parse AppSpaceId UUID: %v", err)
-	}
-	obj.Insert(ast.StringTerm("appSpaceId"), ast.StringTerm(appSpaceID))
-
-	applicationID, err := utilities.GetOptionalUUID(resp.ApplicationId)
-	if err != nil {
-		return fmt.Errorf("cannot parse ApplicationId UUID: %v", err)
-	}
-	obj.Insert(ast.StringTerm("applicationId"), ast.StringTerm(applicationID))
-
-	subjectID, err := utilities.GetOptionalUUID(resp.GetSubject().GetId())
-	if err != nil {
-		return fmt.Errorf("cannot parse SubjectId UUID: %v", err)
-	}
-	obj.Insert(ast.StringTerm("subjectId"), ast.StringTerm(subjectID))
-
-	tenantID, err := utilities.GetOptionalUUID(resp.GetSubject().GetTenantId())
-	if err != nil {
-		return fmt.Errorf("cannot parse TenantId UUID: %v", err)
-	}
-	obj.Insert(ast.StringTerm("tenantId"), ast.StringTerm(tenantID))
+	obj.Insert(ast.StringTerm("customerId"), ast.StringTerm(resp.CustomerId))
+	obj.Insert(ast.StringTerm("appSpaceId"), ast.StringTerm(resp.AppSpaceId))
+	obj.Insert(ast.StringTerm("applicationId"), ast.StringTerm(resp.ApplicationId))
+	obj.Insert(ast.StringTerm("subjectId"), ast.StringTerm(resp.GetSubject().GetId()))
+	obj.Insert(ast.StringTerm("tenantId"), ast.StringTerm(resp.GetSubject().GetTenantId()))
 
 	if resp.GetImpersonated() != nil {
-		ImpersonatedID, err := utilities.GetOptionalUUID(resp.Impersonated.Id)
-		if err != nil {
-			return fmt.Errorf("cannot parse ImpersonatedId UUID: %v", err)
-		}
-		obj.Insert(ast.StringTerm("impersonatedId"), ast.StringTerm(ImpersonatedID))
+		obj.Insert(ast.StringTerm("impersonatedId"), ast.StringTerm(resp.Impersonated.Id))
 	} else {
 		obj.Insert(ast.StringTerm("impersonatedId"), ast.StringTerm(""))
 	}
