@@ -8,7 +8,7 @@ require (
 	github.com/daixiang0/gci v0.9.0
 	github.com/golang/mock v1.6.0
 	github.com/golangci/golangci-lint v1.50.1
-	github.com/indykite/jarvis-sdk-go v0.2.3
+	github.com/indykite/jarvis-sdk-go v0.3.0
 	github.com/json-iterator/go v1.1.12
 	github.com/onsi/ginkgo/v2 v2.6.0
 	github.com/onsi/gomega v1.24.1
@@ -17,7 +17,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	google.golang.org/genproto v0.0.0-20221207170731-23e4bf6bdc37
 	google.golang.org/grpc v1.51.0
-	google.golang.org/protobuf v1.28.1
+	google.golang.org/protobuf v1.28.2-0.20220831092852-f930b1dc76e8
 )
 
 require (

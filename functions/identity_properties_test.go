@@ -22,12 +22,11 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	identitypb "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta1"
+	identitypb "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta2"
 	objects "github.com/indykite/jarvis-sdk-go/gen/indykite/objects/v1beta1"
 	"github.com/indykite/jarvis-sdk-go/identity"
-	identitym "github.com/indykite/jarvis-sdk-go/test/identity/v1beta1"
+	identitym "github.com/indykite/jarvis-sdk-go/test/identity/v1beta2"
 	"github.com/open-policy-agent/opa/rego"
-	"github.com/pborman/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -57,12 +56,12 @@ var _ = Describe("indy.identity_properties", func() {
 	})
 
 	It("Handle attributes from TokenInfo and Properties", func() {
-		appSpaceID := uuid.NewRandom()
-		applicationID := uuid.NewRandom()
-		customerID := uuid.NewRandom()
-		tenantID := uuid.NewRandom()
+		appSpaceID := "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35a"
+		applicationID := "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35b"
+		customerID := "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35c"
+		tenantID := "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35d"
 		expireTime := time.Now()
-		subjectID := uuid.NewRandom()
+		subjectID := "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35e"
 
 		mockIdentityClient.EXPECT().
 			GetDigitalTwin(
@@ -171,11 +170,11 @@ var _ = Describe("indy.identity_properties", func() {
 			"token_info": MatchAllKeys(Keys{
 				"active":         BeTrue(),
 				"impersonatedId": Equal(""),
-				"appSpaceId":     Equal(appSpaceID.String()),
-				"applicationId":  Equal(applicationID.String()),
-				"customerId":     Equal(customerID.String()),
-				"subjectId":      Equal(subjectID.String()),
-				"tenantId":       Equal(tenantID.String()),
+				"appSpaceId":     Equal(appSpaceID),
+				"applicationId":  Equal(applicationID),
+				"customerId":     Equal(customerID),
+				"subjectId":      Equal(subjectID),
+				"tenantId":       Equal(tenantID),
 				"expire":         Equal(json.Number(strconv.FormatInt(expireTime.Unix(), 10))),
 				"tokenClaims":    Equal(map[string]interface{}{}),
 				"sessionClaims":  Equal(map[string]interface{}{}),

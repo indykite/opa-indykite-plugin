@@ -22,11 +22,10 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	identitypb "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta1"
+	identitypb "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta2"
 	"github.com/indykite/jarvis-sdk-go/identity"
-	identitym "github.com/indykite/jarvis-sdk-go/test/identity/v1beta1"
+	identitym "github.com/indykite/jarvis-sdk-go/test/identity/v1beta2"
 	"github.com/open-policy-agent/opa/rego"
-	"github.com/pborman/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -77,12 +76,12 @@ var _ = Describe("indy.identity", func() {
 	})
 
 	It("Handle attributes from TokenInfo when active = true", func() {
-		appSpaceID := uuid.NewRandom()
-		applicationID := uuid.NewRandom()
-		customerID := uuid.NewRandom()
-		tenantID := uuid.NewRandom()
+		appSpaceID := "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35a"
+		applicationID := "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35b"
+		customerID := "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35c"
+		tenantID := "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35d"
 		expireTime := time.Now()
-		subjectID := uuid.NewRandom()
+		subjectID := "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35e"
 
 		mockIdentityClient.EXPECT().
 			TokenIntrospect(gomock.Any(), gomock.Eq(&identitypb.TokenIntrospectRequest{Token: testAccessToken})).
@@ -141,11 +140,11 @@ var _ = Describe("indy.identity", func() {
 			"active":         BeTrue(),
 			"error":          BeNil(),
 			"impersonatedId": Equal(""),
-			"appSpaceId":     Equal(appSpaceID.String()),
-			"applicationId":  Equal(applicationID.String()),
-			"customerId":     Equal(customerID.String()),
-			"subjectId":      Equal(subjectID.String()),
-			"tenantId":       Equal(tenantID.String()),
+			"appSpaceId":     Equal(appSpaceID),
+			"applicationId":  Equal(applicationID),
+			"customerId":     Equal(customerID),
+			"subjectId":      Equal(subjectID),
+			"tenantId":       Equal(tenantID),
 			"expire":         Equal(json.Number(strconv.FormatInt(expireTime.Unix(), 10))),
 			"tokenClaims": MatchAllKeys(Keys{
 				"string_claim": Equal("string_value"),
