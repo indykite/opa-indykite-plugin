@@ -21,10 +21,9 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/indykite/jarvis-sdk-go/authorization"
 	authorizationpb "github.com/indykite/jarvis-sdk-go/gen/indykite/authorization/v1beta1"
-	identitypb "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta1"
+	identitypb "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta2"
 	authorizationm "github.com/indykite/jarvis-sdk-go/test/authorization/v1beta1"
 	"github.com/open-policy-agent/opa/rego"
-	"github.com/pborman/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -55,7 +54,7 @@ var _ = Describe("indy.is_authorized", func() {
 	})
 
 	type dtIDCase struct {
-		reqSubject          *identitypb.DigitalTwinIdentifier
+		reqSubject          *authorizationpb.IsAuthorizedRequest_DigitalTwinIdentifier
 		respDecisionTime    *timestamppb.Timestamp
 		respTTL             *durationpb.Duration
 		regoParam1          string
@@ -110,9 +109,13 @@ var _ = Describe("indy.is_authorized", func() {
 			}))
 		},
 		Entry("Access Token", &dtIDCase{
-			reqSubject: &identitypb.DigitalTwinIdentifier{Filter: &identitypb.DigitalTwinIdentifier_AccessToken{
-				AccessToken: testAccessToken,
-			}},
+			reqSubject: &authorizationpb.IsAuthorizedRequest_DigitalTwinIdentifier{
+				DigitalTwinIdentifier: &identitypb.DigitalTwinIdentifier{
+					Filter: &identitypb.DigitalTwinIdentifier_AccessToken{
+						AccessToken: testAccessToken,
+					},
+				},
+			},
 			respDecisionTime:    timestamppb.New(time.Date(2022, 02, 22, 15, 18, 22, 0, time.UTC)),
 			respTTL:             durationpb.New(time.Minute * 90),
 			decisionTimeMatcher: BeEquivalentTo("1645543102"), // All numbers are json.Number ie string
@@ -120,18 +123,21 @@ var _ = Describe("indy.is_authorized", func() {
 			regoParam1:          `"` + testAccessToken + `"`,
 		}),
 		Entry("DigitalTwin", &dtIDCase{
-			reqSubject: &identitypb.DigitalTwinIdentifier{Filter: &identitypb.DigitalTwinIdentifier_DigitalTwin{
-				DigitalTwin: &identitypb.DigitalTwin{
-					Id:       uuid.Parse("86ee93b8-7a12-4101-a1d0-5a2d8186bf4f"),
-					TenantId: uuid.Parse("915cd179-239a-42dd-8202-f2213f3b9ffd"),
-				},
-			}},
+			reqSubject: &authorizationpb.IsAuthorizedRequest_DigitalTwinIdentifier{
+				DigitalTwinIdentifier: &identitypb.DigitalTwinIdentifier{
+					Filter: &identitypb.DigitalTwinIdentifier_DigitalTwin{
+						DigitalTwin: &identitypb.DigitalTwin{
+							Id:       "gid:AAAAFezuHiJHiUeRjrIJV8k3oKo",
+							TenantId: "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35f",
+						},
+					}},
+			},
 			// Test also nil values
 			respDecisionTime:    nil,
 			respTTL:             nil,
 			decisionTimeMatcher: BeEquivalentTo("0"),
 			ttlMatcher:          BeEquivalentTo("0"),
-			regoParam1:          `{"digital_twin_id": "86ee93b8-7a12-4101-a1d0-5a2d8186bf4f", "tenant_id": "915cd179-239a-42dd-8202-f2213f3b9ffd"}`, // nolint:lll
+			regoParam1:          `{"digital_twin_id": "gid:AAAAFezuHiJHiUeRjrIJV8k3oKo", "tenant_id": "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35f"}`, // nolint:lll
 		}),
 	)
 
@@ -173,37 +179,12 @@ var _ = Describe("indy.is_authorized", func() {
 		Entry("Empty resource_references", `"`+testAccessToken+`", ["READ"], []`,
 			"unable to call IsAuthorized client endpoint",
 			"invalid IsAuthorizedRequest.Resources: value must contain between 1 and 32 items, inclusive"),
-	)
-
-	DescribeTable("Invalid input arguments - builtin error",
-		func(regoParams string, errorMatcher OmegaMatcher) {
-			q := `x = indy.is_authorized(` + regoParams + `, ["READ"], [{"id": "res1", "label": "Label"}, {"id": "res2", "label": "Label"}])` //nolint:lll
-			ctx := context.Background()
-
-			// With StrictBuiltinErrors
-			r := rego.New(rego.Query(q), rego.StrictBuiltinErrors(true))
-			query, err := r.PrepareForEval(ctx)
-			Expect(err).To(Succeed())
-
-			rs, err := query.Eval(ctx)
-			Expect(rs).To(HaveLen(0))
-			Expect(err).To(errorMatcher)
-
-			// Verify that, without StrictBuiltinErrors error is nil and response too
-			r = rego.New(rego.Query(q))
-			query, err = r.PrepareForEval(ctx)
-			Expect(err).To(Succeed())
-
-			rs, err = query.Eval(ctx)
-			Expect(rs).To(HaveLen(0))
-			Expect(err).To(Succeed())
-		},
-		Entry("Invalid digital twin", `{"digital_twin_id": "22", "tenant_id": ""}`, MatchError(ContainSubstring(
-			"indy.is_authorized: operand 1 digital_twin_id: invalid UUID, must be valid RFC4122 variant"))),
-		Entry("Invalid tenant_id", `{"digital_twin_id": "6928fa19-f0e7-4e12-9771-73dce603cf41", "tenant_id": ""}`,
-			MatchError(ContainSubstring(
-				"indy.is_authorized: operand 1 tenant_id: invalid UUID, must be valid RFC4122 variant",
-			))),
+		Entry("Invalid digital twin", `{"digital_twin_id": "22", "tenant_id": ""}, ["READ"], [{"id": "res1", "label": "Label"}, {"id": "res2", "label": "Label"}]`,
+			"unable to call IsAuthorized client endpoint",
+			"invalid DigitalTwin.Id: value length must be between 27 and 100 runes"),
+		Entry("Invalid tenant_id", `{"digital_twin_id": "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35a", "tenant_id": ""}, ["READ"], [{"id": "res1", "label": "Label"}, {"id": "res2", "label": "Label"}]`,
+			"unable to call IsAuthorized client endpoint",
+			"invalid DigitalTwin.TenantId: value length must be between 27 and 100 runes"),
 	)
 
 	It("Service backend error", func() {

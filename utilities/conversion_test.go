@@ -68,9 +68,6 @@ var _ = Describe("Conversion", func() {
 		Entry("Any value", &objects.Value{Value: &objects.Value_AnyValue{}}, MatchError(
 			MatchRegexp("value of type '.*' cannot be converted to .ast.Term"),
 		), BeNil()),
-		Entry("Any value", &objects.Value{Value: &objects.Value_IdentifierValue{}}, MatchError(
-			MatchRegexp("value of type '.*' cannot be converted to .ast.Term"),
-		), BeNil()),
 	)
 	It("objectsValueIntoAstTerm with array", func() {
 		astTerm, err := utilities.ObjectsValueIntoAstTerm(&objects.Value{Value: &objects.Value_ArrayValue{
