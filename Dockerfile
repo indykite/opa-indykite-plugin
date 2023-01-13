@@ -1,5 +1,5 @@
 #https://github.com/docker-library/repo-info/blob/master/repos/golang/remote/1.19-bullseye.md
-FROM golang@sha256:e1144f2411ed538b4bcfd6e4a192210bbac7bf6120d64db47c5f1d85f1ea5410 AS build-env
+FROM golang@sha256:bb9811fad43a7d6fd2173248d8331b2dcf5ac9af20976b1937ecd214c5b8c383 AS build-env
 
 ARG SHORT_SHA=0000000
 ARG TAG_NAME
@@ -21,7 +21,7 @@ RUN go build -mod mod -o opa -ldflags "-w -s \
 RUN ls -lh /go/src/github.com/indykite/opa-indykite-plugin/
 
 #FROM gcr.io/distroless/static-debian10@sha256:f7d14edc27e69f3790cc6bb6c9d24935a84d36df6303547f13c4943dcf87a237
-FROM gcr.io/distroless/base-debian11@sha256:33fac4dddb67a1c7d2a93258373c0744776c4ab68af52e1107cc66e3c702c336
+FROM gcr.io/distroless/base-debian11@sha256:9e6e03068e43358fd02a9bb967f5735587673c0ede0267b4d0d1cd0e0142bc08
 
 ARG BUILD_DATE=2000-01-01T00:00:00:00Z
 ARG GIT_CLOSEST_TAG=develop
