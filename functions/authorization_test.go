@@ -22,6 +22,7 @@ import (
 	"github.com/indykite/jarvis-sdk-go/authorization"
 	authorizationpb "github.com/indykite/jarvis-sdk-go/gen/indykite/authorization/v1beta1"
 	identitypb "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta2"
+	objects "github.com/indykite/jarvis-sdk-go/gen/indykite/objects/v1beta1"
 	authorizationm "github.com/indykite/jarvis-sdk-go/test/authorization/v1beta1"
 	"github.com/open-policy-agent/opa/rego"
 	"google.golang.org/grpc/codes"
@@ -139,6 +140,23 @@ var _ = Describe("indy.is_authorized", func() {
 			ttlMatcher:          BeEquivalentTo("0"),
 			regoParam1:          `{"digital_twin_id": "gid:AAAAFezuHiJHiUeRjrIJV8k3oKo", "tenant_id": "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35f"}`, // nolint:lll
 		}),
+		Entry("DigitalTwin property", &dtIDCase{
+			reqSubject: &authorizationpb.IsAuthorizedRequest_DigitalTwinIdentifier{
+				DigitalTwinIdentifier: &identitypb.DigitalTwinIdentifier{
+					Filter: &identitypb.DigitalTwinIdentifier_PropertyFilter{
+						PropertyFilter: &identitypb.PropertyFilter{
+							Type:  "email",
+							Value: objects.String("sam@sung.com"),
+						},
+					}},
+			},
+			// Test also nil values
+			respDecisionTime:    nil,
+			respTTL:             nil,
+			decisionTimeMatcher: BeEquivalentTo("0"),
+			ttlMatcher:          BeEquivalentTo("0"),
+			regoParam1:          `{"property_type": "email", "property_value": "sam@sung.com"}`,
+		}),
 	)
 
 	//nolint:lll
@@ -185,6 +203,13 @@ var _ = Describe("indy.is_authorized", func() {
 		Entry("Invalid tenant_id", `{"digital_twin_id": "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35a", "tenant_id": ""}, ["READ"], [{"id": "res1", "label": "Label"}, {"id": "res2", "label": "Label"}]`,
 			"unable to call IsAuthorized client endpoint",
 			"invalid DigitalTwin.TenantId: value length must be between 27 and 100 runes"),
+		//	TODO: include these once proto file has validation on PropertyFilter
+		XEntry("Invalid property_type", `{"property_type": "", "property_value": ""}, ["READ"], [{"id": "res1", "label": "Label"}, {"id": "res2", "label": "Label"}]`,
+			"unable to call IsAuthorized client endpoint",
+			"some error here"),
+		XEntry("Invalid property_value", `{"property_type": "email", "property_value": ""}, ["READ"], [{"id": "res1", "label": "Label"}, {"id": "res2", "label": "Label"}]`,
+			"unable to call IsAuthorized client endpoint",
+			"some error here"),
 	)
 
 	It("Service backend error", func() {

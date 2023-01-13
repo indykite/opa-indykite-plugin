@@ -18,12 +18,18 @@ import (
 	"github.com/indykite/jarvis-sdk-go/errors"
 	authorizationpb "github.com/indykite/jarvis-sdk-go/gen/indykite/authorization/v1beta1"
 	identitypb "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta2"
+	objects "github.com/indykite/jarvis-sdk-go/gen/indykite/objects/v1beta1"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/open-policy-agent/opa/topdown/builtins"
 	"github.com/open-policy-agent/opa/types"
 
 	"github.com/indykite/opa-indykite-plugin/utilities"
+)
+
+const (
+	termPropertyType  = "property_type"
+	termPropertyValue = "property_value"
 )
 
 func init() {
@@ -37,6 +43,10 @@ func init() {
 						types.NewObject([]*types.StaticProperty{
 							types.NewStaticProperty("digital_twin_id", types.S),
 							types.NewStaticProperty("tenant_id", types.S),
+						}, nil),
+						types.NewObject([]*types.StaticProperty{
+							types.NewStaticProperty(termPropertyType, types.S),
+							types.NewStaticProperty(termPropertyValue, types.S),
 						}, nil),
 					)),
 					types.Named("actions", types.NewArray(nil, types.S)),
@@ -107,17 +117,37 @@ func extractDigitalTwinIdentifier(identifierValue ast.Value, pos int) (*identity
 			AccessToken: string(identifier),
 		}}, nil
 	case ast.Object:
-		var dtID, tenantID ast.String
-
-		dtID = identifier.Get(ast.StringTerm("digital_twin_id")).Value.(ast.String)
-		tenantID = identifier.Get(ast.StringTerm("tenant_id")).Value.(ast.String)
-
-		return &identitypb.DigitalTwinIdentifier{Filter: &identitypb.DigitalTwinIdentifier_DigitalTwin{
-			DigitalTwin: &identitypb.DigitalTwin{Id: string(dtID), TenantId: string(tenantID)},
-		}}, nil
+		isDigitalTwinObject := identifier.Get(ast.StringTerm("digital_twin_id")) != nil
+		if isDigitalTwinObject {
+			return parseDigitalTwin(identifier)
+		}
+		return parseDigitalTwinProperty(identifier)
 	}
 	// Next line is unreachable. OPA will complain based on declaration of function, when types do not match.
 	return nil, builtins.NewOperandTypeErr(pos, identifierValue, "string", "object")
+}
+
+func parseDigitalTwinProperty(identifier ast.Object) (*identitypb.DigitalTwinIdentifier, error) {
+	var propertyType, propertyValue ast.String
+	propertyType = identifier.Get(ast.StringTerm(termPropertyType)).Value.(ast.String)
+	propertyValue = identifier.Get(ast.StringTerm(termPropertyValue)).Value.(ast.String)
+
+	return &identitypb.DigitalTwinIdentifier{Filter: &identitypb.DigitalTwinIdentifier_PropertyFilter{
+		PropertyFilter: &identitypb.PropertyFilter{
+			Type:  string(propertyType),
+			Value: objects.String(string(propertyValue)),
+		},
+	}}, nil
+}
+
+func parseDigitalTwin(identifier ast.Object) (*identitypb.DigitalTwinIdentifier, error) {
+	var dtID, tenantID ast.String
+	dtID = identifier.Get(ast.StringTerm("digital_twin_id")).Value.(ast.String)
+	tenantID = identifier.Get(ast.StringTerm("tenant_id")).Value.(ast.String)
+
+	return &identitypb.DigitalTwinIdentifier{Filter: &identitypb.DigitalTwinIdentifier_DigitalTwin{
+		DigitalTwin: &identitypb.DigitalTwin{Id: string(dtID), TenantId: string(tenantID)},
+	}}, nil
 }
 
 func buildIsAuthorizedObjectFromResponse(resp *authorizationpb.IsAuthorizedResponse) ast.Object {
