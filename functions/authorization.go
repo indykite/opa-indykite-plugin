@@ -33,7 +33,7 @@ const (
 )
 
 func init() {
-	rego.RegisterBuiltin3(
+	rego.RegisterBuiltin2(
 		&rego.Function{
 			Name: "indy.is_authorized",
 			Decl: types.NewFunction(
@@ -49,27 +49,33 @@ func init() {
 							types.NewStaticProperty(termPropertyValue, types.S),
 						}, nil),
 					)),
-					types.Named("actions", types.NewArray(nil, types.S)),
 					types.Named("resources", types.NewArray(nil, types.NewObject([]*types.StaticProperty{
 						types.NewStaticProperty("id", types.S),
-						types.NewStaticProperty("label", types.S),
+						types.NewStaticProperty("type", types.S),
+						types.NewStaticProperty("actions", types.NewArray(nil, types.S)),
 					}, nil))),
 				),
 				types.Named("authorization_decisions", types.NewObject([]*types.StaticProperty{
 					types.NewStaticProperty("decision_time", types.N),
 					types.NewStaticProperty("decisions", types.NewObject(nil, types.NewDynamicProperty(
 						types.S,
-						types.NewObject([]*types.StaticProperty{
-							types.NewStaticProperty("allow_action", types.NewObject(nil, types.NewDynamicProperty(
+						types.NewObject(nil, types.NewDynamicProperty(
+							types.S,
+							types.NewObject(nil, types.NewDynamicProperty(
 								types.S,
-								types.B,
-							))),
-						}, nil),
+								types.NewObject(nil, types.NewDynamicProperty(
+									types.S,
+									types.NewObject([]*types.StaticProperty{
+										types.NewStaticProperty("allow", types.B),
+									}, nil),
+								)),
+							)),
+						)),
 					))),
 				}, nil)),
 			),
 		},
-		func(bCtx rego.BuiltinContext, dtIdentifier, actions, resourceRefs *ast.Term) (*ast.Term, error) {
+		func(bCtx rego.BuiltinContext, dtIdentifier, resources *ast.Term) (*ast.Term, error) {
 			var err error
 			req := &authorizationpb.IsAuthorizedRequest{}
 
@@ -77,15 +83,15 @@ func init() {
 			if err != nil {
 				return nil, err
 			}
-			if err = ast.As(actions.Value, &req.Actions); err != nil {
-				return nil, err
-			}
-			if err = ast.As(resourceRefs.Value, &req.Resources); err != nil {
+
+			if err = ast.As(resources.Value, &req.Resources); err != nil {
 				return nil, err
 			}
 
-			req.Subject = &authorizationpb.IsAuthorizedRequest_DigitalTwinIdentifier{
-				DigitalTwinIdentifier: digitalTwinIdentifier,
+			req.Subject = &authorizationpb.Subject{
+				Subject: &authorizationpb.Subject_DigitalTwinIdentifier{
+					DigitalTwinIdentifier: digitalTwinIdentifier,
+				},
 			}
 
 			client, err := AuthorizationClient(bCtx.Context)
@@ -153,15 +159,18 @@ func parseDigitalTwin(identifier ast.Object) (*identitypb.DigitalTwinIdentifier,
 func buildIsAuthorizedObjectFromResponse(resp *authorizationpb.IsAuthorizedResponse) ast.Object {
 	decisions := ast.NewObject()
 
-	for resRef, dec := range resp.Decisions {
-		allowAction := ast.NewObject()
-		for k, v := range dec.AllowAction {
-			allowAction.Insert(ast.StringTerm(k), ast.BooleanTerm(v))
+	for resourceType, dec := range resp.Decisions {
+		resources := ast.NewObject()
+		for resourceKey, resourceValue := range dec.Resources {
+			actions := ast.NewObject()
+			for actionKey, actionValue := range resourceValue.Actions {
+				actions.Insert(ast.StringTerm(actionKey), ast.NewTerm(ast.NewObject(
+					ast.Item(ast.StringTerm("allow"), ast.BooleanTerm(actionValue.Allow)),
+				)))
+			}
+			resources.Insert(ast.StringTerm(resourceKey), ast.NewTerm(actions))
 		}
-
-		decisions.Insert(ast.StringTerm(resRef), ast.NewTerm(ast.NewObject(
-			ast.Item(ast.StringTerm("allow_actions"), ast.NewTerm(allowAction)),
-		)))
+		decisions.Insert(ast.StringTerm(resourceType), ast.NewTerm(resources))
 	}
 
 	obj := ast.NewObject(
