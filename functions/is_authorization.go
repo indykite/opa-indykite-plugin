@@ -33,7 +33,7 @@ const (
 )
 
 func init() {
-	rego.RegisterBuiltin2(
+	rego.RegisterBuiltin3(
 		&rego.Function{
 			Name: "indy.is_authorized",
 			Decl: types.NewFunction(
@@ -54,6 +54,14 @@ func init() {
 						types.NewStaticProperty("type", types.S),
 						types.NewStaticProperty("actions", types.NewArray(nil, types.S)),
 					}, nil))),
+					types.Named("options", types.NewObject(nil, types.NewDynamicProperty(
+						types.S,
+						types.NewAny(
+							types.S,
+							types.N,
+							types.B,
+						),
+					))),
 				),
 				types.Named("authorization_decisions", types.NewObject([]*types.StaticProperty{
 					types.NewStaticProperty("decision_time", types.N),
@@ -75,11 +83,16 @@ func init() {
 				}, nil)),
 			),
 		},
-		func(bCtx rego.BuiltinContext, dtIdentifier, resources *ast.Term) (*ast.Term, error) {
+		func(bCtx rego.BuiltinContext, dtIdentifier, resources, options *ast.Term) (*ast.Term, error) {
 			var err error
 			req := &authorizationpb.IsAuthorizedRequest{}
 
 			digitalTwinIdentifier, err := extractDigitalTwinIdentifier(dtIdentifier.Value, 1)
+			if err != nil {
+				return nil, err
+			}
+
+			req.Options, err = parseOptions(options.Value)
 			if err != nil {
 				return nil, err
 			}
@@ -114,6 +127,38 @@ func init() {
 			return &ast.Term{Value: obj}, nil
 		},
 	)
+}
+
+func parseOptions(options ast.Value) (map[string]*authorizationpb.Option, error) {
+	result := map[string]*authorizationpb.Option{}
+	if optionsObj, ok := options.(ast.Object); ok {
+		for _, key := range optionsObj.Keys() {
+			mapKey := string(key.Value.(ast.String))
+			option, err := parseOptionValue(optionsObj.Get(key))
+			if err != nil {
+				return nil, err
+			}
+			result[mapKey] = option
+		}
+	}
+	return result, nil
+}
+
+func parseOptionValue(value *ast.Term) (*authorizationpb.Option, error) {
+	switch v := value.Value.(type) {
+	case ast.String:
+		return &authorizationpb.Option{Value: &authorizationpb.Option_StringValue{StringValue: string(v)}}, nil
+	case ast.Number:
+		if integerValue, isNumber := v.Int64(); isNumber {
+			return &authorizationpb.Option{Value: &authorizationpb.Option_IntegerValue{IntegerValue: integerValue}}, nil
+		} else if doubleValue, isDouble := v.Float64(); isDouble {
+			return &authorizationpb.Option{Value: &authorizationpb.Option_DoubleValue{DoubleValue: doubleValue}}, nil
+		}
+	case ast.Boolean:
+		return &authorizationpb.Option{Value: &authorizationpb.Option_BoolValue{BoolValue: bool(v)}}, nil
+	}
+	// Next line is unreachable. OPA will complain based on declaration of function, when types do not match.
+	return nil, builtins.NewOperandTypeErr(3, value.Value, "string", "number", "boolean")
 }
 
 func extractDigitalTwinIdentifier(identifierValue ast.Value, pos int) (*identitypb.DigitalTwinIdentifier, error) {
