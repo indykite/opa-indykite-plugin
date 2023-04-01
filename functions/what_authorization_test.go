@@ -81,6 +81,12 @@ var _ = Describe("indy.what_authorized", func() {
 						{Type: "TypeOne", Actions: []string{"READ"}},
 						{Type: "TypeTwo"},
 					},
+					Options: map[string]*authorizationpb.Option{
+						"string":  {Value: &authorizationpb.Option_StringValue{StringValue: "42"}},
+						"boolean": {Value: &authorizationpb.Option_BoolValue{BoolValue: true}},
+						"double":  {Value: &authorizationpb.Option_DoubleValue{DoubleValue: 4.2}},
+						"integer": {Value: &authorizationpb.Option_IntegerValue{IntegerValue: 42}},
+					},
 				})),
 			).Return(&authorizationpb.WhatAuthorizedResponse{
 				DecisionTime: c.respDecisionTime,
@@ -108,7 +114,7 @@ var _ = Describe("indy.what_authorized", func() {
 				},
 			}, nil)
 
-			r := rego.New(rego.Query(`x = indy.what_authorized(` + c.regoParam1 + `,[{"type": "TypeOne", "actions": ["READ"]},{"type": "TypeTwo"}])`)) //nolint:lll
+			r := rego.New(rego.Query(`x = indy.what_authorized(` + c.regoParam1 + `,[{"type": "TypeOne", "actions": ["READ"]},{"type": "TypeTwo"}], {"string": "42", "integer": 42, "double": 4.2, "boolean": true})`)) //nolint:lll
 
 			ctx := context.Background()
 			query, err := r.PrepareForEval(ctx)
@@ -224,24 +230,24 @@ var _ = Describe("indy.what_authorized", func() {
 				"error": MatchAllKeys(errKeys),
 			}))
 		},
-		Entry("Request validation fail", `"a", [{"type": "Type", "actions": ["READ"]}]`,
+		Entry("Request validation fail", `"a", [{"type": "Type", "actions": ["READ"]}], {}`,
 			"unable to call WhatAuthorized client endpoint", "AccessToken: value length must be at least 20 runes"),
-		Entry("Invalid access token", `"aaaaaaaaaaaaaaaaaaaa", [{"type": "Type", "actions": ["READ"]}]`,
+		Entry("Invalid access token", `"aaaaaaaaaaaaaaaaaaaa", [{"type": "Type", "actions": ["READ"]}], {}`,
 			"invalid token format", "failed to parse token: invalid character 'a' looking for beginning of value"),
-		Entry("Empty resource_references", `"`+testAccessToken+`", []`,
+		Entry("Empty resource_references", `"`+testAccessToken+`", [], {}`,
 			"unable to call WhatAuthorized client endpoint",
 			"invalid WhatAuthorizedRequest.ResourceTypes: value must contain between 1 and 10 items, inclusive"),
-		Entry("Invalid digital twin", `{"digital_twin_id": "22", "tenant_id": ""}, [{"type": "Type", "actions": ["READ"]}]`,
+		Entry("Invalid digital twin", `{"digital_twin_id": "22", "tenant_id": ""}, [{"type": "Type", "actions": ["READ"]}], {}`,
 			"unable to call WhatAuthorized client endpoint",
 			"invalid DigitalTwin.Id: value length must be between 27 and 100 runes"),
-		Entry("Invalid tenant_id", `{"digital_twin_id": "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35a", "tenant_id": ""}, [{"type": "Type", "actions": ["READ"]}]`,
+		Entry("Invalid tenant_id", `{"digital_twin_id": "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35a", "tenant_id": ""}, [{"type": "Type", "actions": ["READ"]}], {}`,
 			"unable to call WhatAuthorized client endpoint",
 			"invalid DigitalTwin.TenantId: value length must be between 27 and 100 runes"),
 		//	TODO: include these once proto file has validation on PropertyFilter
-		XEntry("Invalid property_type", `{"property_type": "", "property_value": ""}, [{"id": "res1", "type": "Type", "actions": ["READ"]}, {"id": "res2", "type": "Type", "actions": ["READ"]}]`,
+		XEntry("Invalid property_type", `{"property_type": "", "property_value": ""}, [{"id": "res1", "type": "Type", "actions": ["READ"]}, {"id": "res2", "type": "Type", "actions": ["READ"]}], {}`,
 			"unable to call WhatAuthorized client endpoint",
 			"some error here"),
-		XEntry("Invalid property_value", `{"property_type": "email", "property_value": ""}, [{"id": "res1", "type": "Type", "actions": ["READ"]}, {"id": "res2", "type": "Type", "actions": ["READ"]}]`,
+		XEntry("Invalid property_value", `{"property_type": "email", "property_value": ""}, [{"id": "res1", "type": "Type", "actions": ["READ"]}, {"id": "res2", "type": "Type", "actions": ["READ"]}], {}`,
 			"unable to call WhatAuthorized client endpoint",
 			"some error here"),
 	)
@@ -255,7 +261,7 @@ var _ = Describe("indy.what_authorized", func() {
 
 		// With StrictBuiltinErrors
 		r := rego.New(
-			rego.Query(`x = indy.what_authorized("`+testAccessToken+`", [{"type": "Type", "actions": ["READ"]}])`), //nolint:lll
+			rego.Query(`x = indy.what_authorized("`+testAccessToken+`", [{"type": "Type", "actions": ["READ"]}], {})`), //nolint:lll
 			rego.StrictBuiltinErrors(true),
 		)
 
@@ -267,7 +273,7 @@ var _ = Describe("indy.what_authorized", func() {
 		Expect(err).To(MatchError(ContainSubstring("indy.what_authorized: client error: code = Internal desc = oops")))
 
 		// Verify that, without StrictBuiltinErrors error is nil and response too
-		r = rego.New(rego.Query(`x = indy.what_authorized("` + testAccessToken + `", [{"type": "Type", "actions": ["READ"]}])`)) //nolint:lll
+		r = rego.New(rego.Query(`x = indy.what_authorized("` + testAccessToken + `", [{"type": "Type", "actions": ["READ"]}], {})`)) //nolint:lll
 
 		query, err = r.PrepareForEval(ctx)
 		Expect(err).To(Succeed())
@@ -284,7 +290,7 @@ var _ = Describe("indy.what_authorized", func() {
 
 		// With StrictBuiltinErrors
 		r := rego.New(
-			rego.Query(`x = indy.what_authorized("`+testAccessToken+`", [{"type": "Type", "actions": ["READ"]}])`), //nolint:lll
+			rego.Query(`x = indy.what_authorized("`+testAccessToken+`", [{"type": "Type", "actions": ["READ"]}], {})`), //nolint:lll
 			rego.StrictBuiltinErrors(true),
 		)
 
@@ -296,7 +302,7 @@ var _ = Describe("indy.what_authorized", func() {
 		Expect(err).To(MatchError(ContainSubstring("indy.what_authorized: missing endpoint")))
 
 		// Verify that, without StrictBuiltinErrors error is nil and response too
-		r = rego.New(rego.Query(`x = indy.what_authorized("` + testAccessToken + `", [{"type": "Type", "actions": ["READ"]}])`)) //nolint:lll
+		r = rego.New(rego.Query(`x = indy.what_authorized("` + testAccessToken + `", [{"type": "Type", "actions": ["READ"]}], {})`)) //nolint:lll
 
 		query, err = r.PrepareForEval(ctx)
 		Expect(err).To(Succeed())

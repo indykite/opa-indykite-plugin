@@ -25,7 +25,7 @@ import (
 )
 
 func init() {
-	rego.RegisterBuiltin2(
+	rego.RegisterBuiltin3(
 		&rego.Function{
 			Name: "indy.what_authorized",
 			Decl: types.NewFunction(
@@ -50,6 +50,14 @@ func init() {
 							types.NewStaticProperty("actions", types.NewArray(nil, types.S)),
 						}, nil),
 					))),
+					types.Named("options", types.NewObject(nil, types.NewDynamicProperty(
+						types.S,
+						types.NewAny(
+							types.S,
+							types.N,
+							types.B,
+						),
+					))),
 				),
 				types.Named("authorization_decisions", types.NewObject([]*types.StaticProperty{
 					types.NewStaticProperty("decision_time", types.N),
@@ -65,11 +73,16 @@ func init() {
 				}, nil)),
 			),
 		},
-		func(bCtx rego.BuiltinContext, dtIdentifier, resources *ast.Term) (*ast.Term, error) {
+		func(bCtx rego.BuiltinContext, dtIdentifier, resources, options *ast.Term) (*ast.Term, error) {
 			var err error
 			req := &authorizationpb.WhatAuthorizedRequest{}
 
 			digitalTwinIdentifier, err := extractDigitalTwinIdentifier(dtIdentifier.Value, 1)
+			if err != nil {
+				return nil, err
+			}
+
+			req.Options, err = parseOptions(options.Value)
 			if err != nil {
 				return nil, err
 			}
