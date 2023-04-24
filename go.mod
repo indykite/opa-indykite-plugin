@@ -8,7 +8,7 @@ require (
 	github.com/daixiang0/gci v0.10.1
 	github.com/golang/mock v1.6.0
 	github.com/golangci/golangci-lint v1.52.2
-	github.com/indykite/jarvis-sdk-go v0.9.0
+	github.com/indykite/jarvis-sdk-go v0.10.0
 	github.com/json-iterator/go v1.1.12
 	github.com/onsi/ginkgo/v2 v2.9.2
 	github.com/onsi/gomega v1.27.6

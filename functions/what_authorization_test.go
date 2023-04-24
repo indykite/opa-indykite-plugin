@@ -24,6 +24,7 @@ import (
 	authorizationpb "github.com/indykite/jarvis-sdk-go/gen/indykite/authorization/v1beta1"
 	identitypb "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta2"
 	objects "github.com/indykite/jarvis-sdk-go/gen/indykite/objects/v1beta1"
+	"github.com/indykite/jarvis-sdk-go/test"
 	authorizationm "github.com/indykite/jarvis-sdk-go/test/authorization/v1beta1"
 	"github.com/open-policy-agent/opa/rego"
 	"google.golang.org/grpc/codes"
@@ -81,12 +82,13 @@ var _ = Describe("indy.what_authorized", func() {
 						{Type: "TypeOne", Actions: []string{"READ"}},
 						{Type: "TypeTwo"},
 					},
-					Options: map[string]*authorizationpb.Option{
-						"string":  {Value: &authorizationpb.Option_StringValue{StringValue: "42"}},
-						"boolean": {Value: &authorizationpb.Option_BoolValue{BoolValue: true}},
-						"double":  {Value: &authorizationpb.Option_DoubleValue{DoubleValue: 4.2}},
-						"integer": {Value: &authorizationpb.Option_IntegerValue{IntegerValue: 42}},
+					InputParams: map[string]*authorizationpb.InputParam{
+						"string":  {Value: &authorizationpb.InputParam_StringValue{StringValue: "42"}},
+						"boolean": {Value: &authorizationpb.InputParam_BoolValue{BoolValue: true}},
+						"double":  {Value: &authorizationpb.InputParam_DoubleValue{DoubleValue: 4.2}},
+						"integer": {Value: &authorizationpb.InputParam_IntegerValue{IntegerValue: 42}},
 					},
+					PolicyTags: []string{"42"},
 				})),
 			).Return(&authorizationpb.WhatAuthorizedResponse{
 				DecisionTime: c.respDecisionTime,
@@ -114,7 +116,7 @@ var _ = Describe("indy.what_authorized", func() {
 				},
 			}, nil)
 
-			r := rego.New(rego.Query(`x = indy.what_authorized(` + c.regoParam1 + `,[{"type": "TypeOne", "actions": ["READ"]},{"type": "TypeTwo"}], {"string": "42", "integer": 42, "double": 4.2, "boolean": true})`)) //nolint:lll
+			r := rego.New(rego.Query(`x = indy.what_authorized(` + c.regoParam1 + `,[{"type": "TypeOne", "actions": ["READ"]},{"type": "TypeTwo"}], { "input_params": {"string": "42", "integer": 42, "double": 4.2, "boolean": true}, "policy_tags": ["42"]})`)) //nolint:lll
 
 			ctx := context.Background()
 			query, err := r.PrepareForEval(ctx)
@@ -311,4 +313,69 @@ var _ = Describe("indy.what_authorized", func() {
 		Expect(rs).To(HaveLen(0))
 		Expect(err).To(Succeed())
 	})
+	DescribeTable("Testing options",
+		func(regoOptions string, inputParams map[string]*authorizationpb.InputParam, policyTags []string) {
+			request := &authorizationpb.WhatAuthorizedRequest{
+				Subject: &authorizationpb.Subject{
+					Subject: &authorizationpb.Subject_DigitalTwinIdentifier{
+						DigitalTwinIdentifier: &identitypb.DigitalTwinIdentifier{
+							Filter: &identitypb.DigitalTwinIdentifier_AccessToken{AccessToken: testAccessToken},
+						},
+					},
+				},
+				ResourceTypes: []*authorizationpb.WhatAuthorizedRequest_ResourceType{
+					{Type: "Type", Actions: []string{"READ"}},
+				},
+				InputParams: inputParams,
+				PolicyTags:  policyTags,
+			}
+
+			mockAuthorizationClient.EXPECT().WhatAuthorized(
+				gomock.Any(),
+				WrapMatcher(test.EqualProto(request)),
+			).Return(&authorizationpb.WhatAuthorizedResponse{
+				DecisionTime: timestamppb.New(time.Date(2022, 02, 22, 15, 18, 22, 0, time.UTC)),
+				Decisions: map[string]*authorizationpb.WhatAuthorizedResponse_ResourceType{
+					"Type": {
+						Actions: map[string]*authorizationpb.WhatAuthorizedResponse_Action{
+							"READ": {
+								Resources: []*authorizationpb.WhatAuthorizedResponse_Resource{
+									{ExternalId: "res1"},
+								},
+							},
+						},
+					},
+				},
+			}, nil)
+
+			q := `x = indy.what_authorized("` + testAccessToken + `",[{"type": "Type", "actions": ["READ"]}],` + regoOptions + `)` // nolint:lll
+			r := rego.New(rego.Query(q))
+
+			ctx := context.Background()
+			query, err := r.PrepareForEval(ctx)
+			Expect(err).To(Succeed())
+
+			rs, err := query.Eval(ctx)
+			Expect(err).To(Succeed())
+			Expect(rs[0].Bindings["x"]).To(Not(BeNil()))
+		},
+		Entry("Empty options", `{}`, nil, nil),
+		Entry("input_params - String param", `{"input_params": { "string": "42" }}`,
+			map[string]*authorizationpb.InputParam{
+				"string": {Value: &authorizationpb.InputParam_StringValue{StringValue: "42"}},
+			},
+			nil,
+		),
+		Entry("input_params - Bool and integer param", `{"input_params": { "boolean": true, "integer": 42 }}`,
+			map[string]*authorizationpb.InputParam{
+				"boolean": {Value: &authorizationpb.InputParam_BoolValue{BoolValue: true}},
+				"integer": {Value: &authorizationpb.InputParam_IntegerValue{IntegerValue: 42}},
+			},
+			nil,
+		),
+		Entry("policy_tags - wrong object type", `{"policy_tags": "invalid"}`, nil, nil),
+		Entry("policy_tags - empty array", `{"policy_tags": []}`, nil, nil),
+		Entry("policy_tags - wrong value in array", `{"policy_tags": [42]}`, nil, nil),
+		Entry("policy_tags - two values in array", `{"policy_tags": ["42", "24"]}`, nil, []string{"42", "24"}),
+	)
 })

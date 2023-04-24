@@ -50,14 +50,7 @@ func init() {
 							types.NewStaticProperty("actions", types.NewArray(nil, types.S)),
 						}, nil),
 					))),
-					types.Named("options", types.NewObject(nil, types.NewDynamicProperty(
-						types.S,
-						types.NewAny(
-							types.S,
-							types.N,
-							types.B,
-						),
-					))),
+					types.Named("options", types.NewObject(nil, types.NewDynamicProperty(types.S, types.A))),
 				),
 				types.Named("authorization_decisions", types.NewObject([]*types.StaticProperty{
 					types.NewStaticProperty("decision_time", types.N),
@@ -74,23 +67,25 @@ func init() {
 			),
 		},
 		func(bCtx rego.BuiltinContext, dtIdentifier, resources, options *ast.Term) (*ast.Term, error) {
-			var err error
+			optionsObj, err := validateOptionOperand(options, 2)
+			if err != nil {
+				return nil, err
+			}
+
 			req := &authorizationpb.WhatAuthorizedRequest{}
+			req.PolicyTags = parsePolicyTags(optionsObj)
+			req.InputParams, err = parseInputParams(optionsObj)
+			if err != nil {
+				return nil, err
+			}
+			if err = ast.As(resources.Value, &req.ResourceTypes); err != nil {
+				return nil, err
+			}
 
 			digitalTwinIdentifier, err := extractDigitalTwinIdentifier(dtIdentifier.Value, 1)
 			if err != nil {
 				return nil, err
 			}
-
-			req.Options, err = parseOptions(options.Value)
-			if err != nil {
-				return nil, err
-			}
-
-			if err = ast.As(resources.Value, &req.ResourceTypes); err != nil {
-				return nil, err
-			}
-
 			req.Subject = &authorizationpb.Subject{
 				Subject: &authorizationpb.Subject_DigitalTwinIdentifier{
 					DigitalTwinIdentifier: digitalTwinIdentifier,
