@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"time"
 
-	sdkerrors "github.com/indykite/jarvis-sdk-go/errors"
-	objects "github.com/indykite/jarvis-sdk-go/gen/indykite/objects/v1beta1"
+	sdkerrors "github.com/indykite/indykite-sdk-go/errors"
+	objects "github.com/indykite/indykite-sdk-go/gen/indykite/objects/v1beta1"
 	"github.com/open-policy-agent/opa/ast"
 )
 

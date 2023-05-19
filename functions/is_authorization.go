@@ -15,10 +15,10 @@
 package functions
 
 import (
-	"github.com/indykite/jarvis-sdk-go/errors"
-	authorizationpb "github.com/indykite/jarvis-sdk-go/gen/indykite/authorization/v1beta1"
-	identitypb "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta2"
-	objects "github.com/indykite/jarvis-sdk-go/gen/indykite/objects/v1beta1"
+	"github.com/indykite/indykite-sdk-go/errors"
+	authorizationpb "github.com/indykite/indykite-sdk-go/gen/indykite/authorization/v1beta1"
+	identitypb "github.com/indykite/indykite-sdk-go/gen/indykite/identity/v1beta2"
+	objects "github.com/indykite/indykite-sdk-go/gen/indykite/objects/v1beta1"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/open-policy-agent/opa/topdown/builtins"

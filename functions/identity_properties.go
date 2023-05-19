@@ -17,8 +17,8 @@ package functions
 import (
 	"time"
 
-	"github.com/indykite/jarvis-sdk-go/errors"
-	identity "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta2"
+	"github.com/indykite/indykite-sdk-go/errors"
+	identity "github.com/indykite/indykite-sdk-go/gen/indykite/identity/v1beta2"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/open-policy-agent/opa/types"

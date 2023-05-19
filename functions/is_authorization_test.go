@@ -19,12 +19,12 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/indykite/jarvis-sdk-go/authorization"
-	authorizationpb "github.com/indykite/jarvis-sdk-go/gen/indykite/authorization/v1beta1"
-	identitypb "github.com/indykite/jarvis-sdk-go/gen/indykite/identity/v1beta2"
-	objects "github.com/indykite/jarvis-sdk-go/gen/indykite/objects/v1beta1"
-	"github.com/indykite/jarvis-sdk-go/test"
-	authorizationm "github.com/indykite/jarvis-sdk-go/test/authorization/v1beta1"
+	"github.com/indykite/indykite-sdk-go/authorization"
+	authorizationpb "github.com/indykite/indykite-sdk-go/gen/indykite/authorization/v1beta1"
+	identitypb "github.com/indykite/indykite-sdk-go/gen/indykite/identity/v1beta2"
+	objects "github.com/indykite/indykite-sdk-go/gen/indykite/objects/v1beta1"
+	"github.com/indykite/indykite-sdk-go/test"
+	authorizationm "github.com/indykite/indykite-sdk-go/test/authorization/v1beta1"
 	"github.com/open-policy-agent/opa/rego"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -213,7 +213,7 @@ var _ = Describe("indy.is_authorized", func() {
 		Entry("Request validation fail", `"a", [{"id": "res1", "type": "Type", "actions": ["READ"]}, {"id": "res2", "type": "Type", "actions": ["READ"]}], {}`,
 			"unable to call IsAuthorized client endpoint", "AccessToken: value length must be at least 20 runes"),
 		Entry("Invalid access token", `"aaaaaaaaaaaaaaaaaaaa", [{"id": "res1", "type": "Type", "actions": ["READ"]}, {"id": "res2", "type": "Type", "actions": ["READ"]}], {}`,
-			"invalid token format", "failed to parse token: invalid character 'a' looking for beginning of value"),
+			"invalid token format", "invalid JWT"),
 		Entry("Empty actions", `"`+testAccessToken+`", [{"id": "res1", "type": "Type", "actions": []}, {"id": "res2", "type": "Type", "actions": []}], {}`,
 			"unable to call IsAuthorized client endpoint",
 			"Actions: value must contain between 1 and 5 items"),

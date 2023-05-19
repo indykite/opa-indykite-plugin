@@ -18,10 +18,10 @@ import (
 	"context"
 	"sync"
 
-	"github.com/indykite/jarvis-sdk-go/authorization"
-	api "github.com/indykite/jarvis-sdk-go/grpc"
-	"github.com/indykite/jarvis-sdk-go/grpc/config"
-	"github.com/indykite/jarvis-sdk-go/identity"
+	"github.com/indykite/indykite-sdk-go/authorization"
+	api "github.com/indykite/indykite-sdk-go/grpc"
+	"github.com/indykite/indykite-sdk-go/grpc/config"
+	"github.com/indykite/indykite-sdk-go/identity"
 	"github.com/sirupsen/logrus"
 
 	"github.com/indykite/opa-indykite-plugin/plugins"

@@ -15,7 +15,7 @@
 package functions
 
 import (
-	authorizationpb "github.com/indykite/jarvis-sdk-go/gen/indykite/authorization/v1beta1"
+	authorizationpb "github.com/indykite/indykite-sdk-go/gen/indykite/authorization/v1beta1"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/topdown/builtins"
 )
