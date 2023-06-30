@@ -5,8 +5,14 @@
     ":disableDependencyDashboard"
   ],
   "semanticCommits": "disabled",
+  "enabledManagers": [
+    "github-actions",
+    "dockerfile",
+    "gomod"
+  ],
   "postUpdateOptions": [
     "gomodTidy",
+    "gomodUpdateImportPaths",
     "gomodNoMassage"
   ],
   "commitMessagePrefix": "chore(deps): ",
