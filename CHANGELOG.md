@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/indykite/opa-indykite-plugin/compare/v1.0.2...v1.0.3) (2023-08-24)
+
+
+### Styles
+
+* update copyright year ([50f3a37](https://github.com/indykite/opa-indykite-plugin/commit/50f3a37e62ec1335ea0390cc1aa0b1d661c3c69e))
+
 ## [1.0.2](https://github.com/indykite/opa-indykite-plugin/compare/v1.0.1...v1.0.2) (2023-08-24)
 
 
