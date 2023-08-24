@@ -19,6 +19,6 @@ jobs:
             - id: release-please
               uses: GoogleCloudPlatform/release-please-action@v3
               with:
-                  release-type: simple
+                  release-type: go
                   package-name: opa-plugin
                   token: ${{ secrets.INDYKITEONE_PAT }}
