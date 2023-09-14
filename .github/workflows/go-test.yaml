@@ -24,7 +24,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Check out code
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
 
             - name: Set up Go
               uses: actions/setup-go@v4
@@ -36,7 +36,7 @@ jobs:
                   make test
 
             - name: Upload coverage to Codecov
-              uses: codecov/codecov-action@v3
+              uses: codecov/codecov-action@v4
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
                   files: ./coverage.out
@@ -49,7 +49,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Check out jarvis-proto code
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
             - name: Create .trivyignore file
               run: echo '${{ vars.TRIVY_IGNORE }}' > .trivyignore
             - uses: aquasecurity/trivy-action@0.11.2
