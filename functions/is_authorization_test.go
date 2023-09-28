@@ -20,7 +20,6 @@ import (
 
 	"github.com/indykite/indykite-sdk-go/authorization"
 	authorizationpb "github.com/indykite/indykite-sdk-go/gen/indykite/authorization/v1beta1"
-	identitypb "github.com/indykite/indykite-sdk-go/gen/indykite/identity/v1beta2"
 	objects "github.com/indykite/indykite-sdk-go/gen/indykite/objects/v1beta1"
 	"github.com/indykite/indykite-sdk-go/test"
 	authorizationm "github.com/indykite/indykite-sdk-go/test/authorization/v1beta1"
@@ -70,8 +69,8 @@ var _ = Describe("indy.is_authorized", func() {
 				WrapMatcher(EqualProto(&authorizationpb.IsAuthorizedRequest{
 					Subject: c.reqSubject,
 					Resources: []*authorizationpb.IsAuthorizedRequest_Resource{
-						{Id: "res1", Type: "Type", Actions: []string{"READ"}},
-						{Id: "res2", Type: "Type", Actions: []string{"READ"}},
+						{ExternalId: "res1", Type: "Type", Actions: []string{"READ"}},
+						{ExternalId: "res2", Type: "Type", Actions: []string{"READ"}},
 					},
 					InputParams: map[string]*authorizationpb.InputParam{
 						"string":  {Value: &authorizationpb.InputParam_StringValue{StringValue: "42"}},
@@ -102,7 +101,7 @@ var _ = Describe("indy.is_authorized", func() {
 			}, nil)
 
 			r := rego.New(rego.Query(
-				`x = indy.is_authorized(` + c.regoParam1 + `,[{"id": "res1", "type": "Type", "actions": ["READ"]},{"id": "res2", "type": "Type", "actions": ["READ"]}], {"input_params": {"string": "42", "integer": 42, "double": 4.2, "boolean": true}, "policy_tags": ["42"]})`)) //nolint:lll
+				`x = indy.is_authorized(` + c.regoParam1 + `,[{"externalId": "res1", "type": "Type", "actions": ["READ"]},{"externalId": "res2", "type": "Type", "actions": ["READ"]}], {"inputParams": {"string": "42", "integer": 42, "double": 4.2, "boolean": true}, "policyTags": ["42"]})`)) //nolint:lll
 
 			ctx := context.Background()
 			query, err := r.PrepareForEval(ctx)
@@ -111,8 +110,8 @@ var _ = Describe("indy.is_authorized", func() {
 			rs, err := query.Eval(ctx)
 			Expect(err).To(Succeed())
 			Expect(rs[0].Bindings["x"]).To(MatchAllKeys(Keys{
-				"error":         BeNil(),
-				"decision_time": c.decisionTimeMatcher,
+				"error":        BeNil(),
+				"decisionTime": c.decisionTimeMatcher,
 				"decisions": MatchAllKeys(Keys{
 					"Type": MatchAllKeys(Keys{
 						"res1": MatchAllKeys(Keys{
@@ -131,9 +130,33 @@ var _ = Describe("indy.is_authorized", func() {
 		},
 		Entry("Access Token", &dtIDCase{
 			reqSubject: &authorizationpb.Subject{
-				Subject: &authorizationpb.Subject_DigitalTwinIdentifier{
-					DigitalTwinIdentifier: &identitypb.DigitalTwinIdentifier{
-						Filter: &identitypb.DigitalTwinIdentifier_AccessToken{AccessToken: testAccessToken},
+				Subject: &authorizationpb.Subject_IndykiteAccessToken{
+					IndykiteAccessToken: testAccessToken,
+				},
+			},
+			respDecisionTime:    timestamppb.New(time.Date(2022, 02, 22, 15, 18, 22, 0, time.UTC)),
+			respTTL:             durationpb.New(time.Minute * 90),
+			decisionTimeMatcher: BeEquivalentTo("1645543102"), // All numbers are json.Number ie string
+			ttlMatcher:          BeEquivalentTo("5400"),
+			regoParam1:          `{"id": "` + testAccessToken + `"}`,
+		}),
+		Entry("Access Token - with type", &dtIDCase{
+			reqSubject: &authorizationpb.Subject{
+				Subject: &authorizationpb.Subject_IndykiteAccessToken{
+					IndykiteAccessToken: testAccessToken,
+				},
+			},
+			respDecisionTime:    timestamppb.New(time.Date(2022, 02, 22, 15, 18, 22, 0, time.UTC)),
+			respTTL:             durationpb.New(time.Minute * 90),
+			decisionTimeMatcher: BeEquivalentTo("1645543102"), // All numbers are json.Number ie string
+			ttlMatcher:          BeEquivalentTo("5400"),
+			regoParam1:          `{"id": "` + testAccessToken + `", "type": "token"}`,
+		}),
+		Entry("DigitalTwin id", &dtIDCase{
+			reqSubject: &authorizationpb.Subject{
+				Subject: &authorizationpb.Subject_DigitalTwinId{
+					DigitalTwinId: &authorizationpb.DigitalTwin{
+						Id: "gid:AAAAFezuHiJHiUeRjrIJV8k3oKo",
 					},
 				},
 			},
@@ -141,47 +164,22 @@ var _ = Describe("indy.is_authorized", func() {
 			respTTL:             durationpb.New(time.Minute * 90),
 			decisionTimeMatcher: BeEquivalentTo("1645543102"), // All numbers are json.Number ie string
 			ttlMatcher:          BeEquivalentTo("5400"),
-			regoParam1:          `"` + testAccessToken + `"`,
-		}),
-		Entry("DigitalTwin", &dtIDCase{
-			reqSubject: &authorizationpb.Subject{
-				Subject: &authorizationpb.Subject_DigitalTwinIdentifier{
-					DigitalTwinIdentifier: &identitypb.DigitalTwinIdentifier{
-						Filter: &identitypb.DigitalTwinIdentifier_DigitalTwin{
-							DigitalTwin: &identitypb.DigitalTwin{
-								Id:       "gid:AAAAFezuHiJHiUeRjrIJV8k3oKo",
-								TenantId: "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35f",
-							},
-						},
-					},
-				},
-			},
-			// Test also nil values
-			respDecisionTime:    nil,
-			respTTL:             nil,
-			decisionTimeMatcher: BeEquivalentTo("0"),
-			ttlMatcher:          BeEquivalentTo("0"),
-			regoParam1:          `{"digital_twin_id": "gid:AAAAFezuHiJHiUeRjrIJV8k3oKo", "tenant_id": "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35f"}`, // nolint:lll
+			regoParam1:          `{"id": "gid:AAAAFezuHiJHiUeRjrIJV8k3oKo", "type": "id"}`,
 		}),
 		Entry("DigitalTwin property", &dtIDCase{
 			reqSubject: &authorizationpb.Subject{
-				Subject: &authorizationpb.Subject_DigitalTwinIdentifier{
-					DigitalTwinIdentifier: &identitypb.DigitalTwinIdentifier{
-						Filter: &identitypb.DigitalTwinIdentifier_PropertyFilter{
-							PropertyFilter: &identitypb.PropertyFilter{
-								Type:  "email",
-								Value: objects.String("sam@sung.com"),
-							},
-						},
+				Subject: &authorizationpb.Subject_DigitalTwinProperty{
+					DigitalTwinProperty: &authorizationpb.Property{
+						Type:  "email",
+						Value: objects.String("sam@sung.com"),
 					},
 				},
 			},
-			// Test also nil values
-			respDecisionTime:    nil,
-			respTTL:             nil,
-			decisionTimeMatcher: BeEquivalentTo("0"),
-			ttlMatcher:          BeEquivalentTo("0"),
-			regoParam1:          `{"property_type": "email", "property_value": "sam@sung.com"}`,
+			respDecisionTime:    timestamppb.New(time.Date(2022, 02, 22, 15, 18, 22, 0, time.UTC)),
+			respTTL:             durationpb.New(time.Minute * 90),
+			decisionTimeMatcher: BeEquivalentTo("1645543102"), // All numbers are json.Number ie string
+			ttlMatcher:          BeEquivalentTo("5400"),
+			regoParam1:          `{"id": "sam@sung.com", "type": "property", "property": "email"}`,
 		}),
 	)
 
@@ -210,29 +208,22 @@ var _ = Describe("indy.is_authorized", func() {
 				"error": MatchAllKeys(errKeys),
 			}))
 		},
-		Entry("Request validation fail", `"a", [{"id": "res1", "type": "Type", "actions": ["READ"]}, {"id": "res2", "type": "Type", "actions": ["READ"]}], {}`,
+		Entry("Request validation fail", `{"id": "a"}, [{"externalId": "res1", "type": "Type", "actions": ["READ"]}, {"externalId": "res2", "type": "Type", "actions": ["READ"]}], {}`,
 			"unable to call IsAuthorized client endpoint", "AccessToken: value length must be at least 20 runes"),
-		Entry("Invalid access token", `"aaaaaaaaaaaaaaaaaaaa", [{"id": "res1", "type": "Type", "actions": ["READ"]}, {"id": "res2", "type": "Type", "actions": ["READ"]}], {}`,
+		Entry("Invalid access token", `{"id": "aaaaaaaaaaaaaaaaaaaa"}, [{"externalId": "res1", "type": "Type", "actions": ["READ"]}, {"externalId": "res2", "type": "Type", "actions": ["READ"]}], {}`,
 			"invalid token format", "invalid JWT"),
-		Entry("Empty actions", `"`+testAccessToken+`", [{"id": "res1", "type": "Type", "actions": []}, {"id": "res2", "type": "Type", "actions": []}], {}`,
+		Entry("Empty actions", `{"id": "`+testAccessToken+`"}, [{"externalId": "res1", "type": "Type", "actions": []}, {"externalId": "res2", "type": "Type", "actions": []}], {}`,
 			"unable to call IsAuthorized client endpoint",
 			"Actions: value must contain between 1 and 5 items"),
-		Entry("Empty resource_references", `"`+testAccessToken+`", [], {}`,
+		Entry("Empty resource_references", `{"id": "`+testAccessToken+`"}, [], {}`,
 			"unable to call IsAuthorized client endpoint",
 			"invalid IsAuthorizedRequest.Resources: value must contain between 1 and 32 items, inclusive"),
-		Entry("Invalid digital twin", `{"digital_twin_id": "22", "tenant_id": ""}, [{"id": "res1", "type": "Type", "actions": ["READ"]}, {"id": "res2", "type": "Type", "actions": ["READ"]}], {}`,
+		Entry("Invalid digital twin", `{"id": "abc", "type": "id"}, [{"externalId": "res1", "type": "Type", "actions": ["READ"]}, {"externalId": "res2", "type": "Type", "actions": ["READ"]}], {}`,
 			"unable to call IsAuthorized client endpoint",
 			"invalid DigitalTwin.Id: value length must be between 27 and 100 runes"),
-		Entry("Invalid tenant_id", `{"digital_twin_id": "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35a", "tenant_id": ""}, [{"id": "res1", "type": "Type", "actions": ["READ"]}, {"id": "res2", "type": "Type", "actions": ["READ"]}], {}`,
+		Entry("Invalid propertyType", `{"id": "", "type": "property", "property": ""}, [{"externalId": "res1", "type": "Type", "actions": ["READ"]}, {"externalId": "res2", "type": "Type", "actions": ["READ"]}], {}`,
 			"unable to call IsAuthorized client endpoint",
-			"invalid DigitalTwin.TenantId: value length must be between 27 and 100 runes"),
-		//	TODO: include these once proto file has validation on PropertyFilter
-		XEntry("Invalid property_type", `{"property_type": "", "property_value": ""}, [{"id": "res1", "type": "Type", "actions": ["READ"]}, {"id": "res2", "type": "Type", "actions": ["READ"]}], {}`,
-			"unable to call IsAuthorized client endpoint",
-			"some error here"),
-		XEntry("Invalid property_value", `{"property_type": "email", "property_value": ""}, [{"id": "res1", "type": "Type", "actions": ["READ"]}, {"id": "res2", "type": "Type", "actions": ["READ"]}], {}`,
-			"unable to call IsAuthorized client endpoint",
-			"some error here"),
+			"invalid Property.Type: value length must be between 2 and 20 runes"),
 	)
 
 	It("Service backend error", func() {
@@ -244,7 +235,7 @@ var _ = Describe("indy.is_authorized", func() {
 
 		// With StrictBuiltinErrors
 		r := rego.New(
-			rego.Query(`x = indy.is_authorized("`+testAccessToken+`", [{"id": "res1", "type": "Type", "actions": ["READ"]}], {})`), //nolint:lll
+			rego.Query(`x = indy.is_authorized({"id": "`+testAccessToken+`"}, [{"externalId": "res1", "type": "Type", "actions": ["READ"]}], {})`), //nolint:lll
 			rego.StrictBuiltinErrors(true),
 		)
 
@@ -256,7 +247,7 @@ var _ = Describe("indy.is_authorized", func() {
 		Expect(err).To(MatchError(ContainSubstring("indy.is_authorized: client error: code = Internal desc = oops")))
 
 		// Verify that, without StrictBuiltinErrors error is nil and response too
-		r = rego.New(rego.Query(`x = indy.is_authorized("` + testAccessToken + `", [{"id": "res1", "type": "Type", "actions": ["READ"]}], {})`)) //nolint:lll
+		r = rego.New(rego.Query(`x = indy.is_authorized({"id": "` + testAccessToken + `"}, [{"externalId": "res1", "type": "Type", "actions": ["READ"]}], {})`)) //nolint:lll
 
 		query, err = r.PrepareForEval(ctx)
 		Expect(err).To(Succeed())
@@ -273,7 +264,7 @@ var _ = Describe("indy.is_authorized", func() {
 
 		// With StrictBuiltinErrors
 		r := rego.New(
-			rego.Query(`x = indy.is_authorized("`+testAccessToken+`", [{"id": "res1", "type": "Type", "actions": ["READ"]}], {})`), //nolint:lll
+			rego.Query(`x = indy.is_authorized({"id": "`+testAccessToken+`"}, [{"externalId": "res1", "type": "Type", "actions": ["READ"]}], {})`), //nolint:lll
 			rego.StrictBuiltinErrors(true),
 		)
 
@@ -285,7 +276,7 @@ var _ = Describe("indy.is_authorized", func() {
 		Expect(err).To(MatchError(ContainSubstring("indy.is_authorized: missing endpoint")))
 
 		// Verify that, without StrictBuiltinErrors error is nil and response too
-		r = rego.New(rego.Query(`x = indy.is_authorized("` + testAccessToken + `", [{"id": "res1", "type": "Type", "actions": ["READ"]}], {})`)) //nolint:lll
+		r = rego.New(rego.Query(`x = indy.is_authorized({"id": "` + testAccessToken + `"}, [{"externalId": "res1", "type": "Type", "actions": ["READ"]}], {})`)) //nolint:lll
 
 		query, err = r.PrepareForEval(ctx)
 		Expect(err).To(Succeed())
@@ -298,14 +289,12 @@ var _ = Describe("indy.is_authorized", func() {
 		func(regoOptions string, inputParams map[string]*authorizationpb.InputParam, policyTags []string) {
 			request := &authorizationpb.IsAuthorizedRequest{
 				Subject: &authorizationpb.Subject{
-					Subject: &authorizationpb.Subject_DigitalTwinIdentifier{
-						DigitalTwinIdentifier: &identitypb.DigitalTwinIdentifier{
-							Filter: &identitypb.DigitalTwinIdentifier_AccessToken{AccessToken: testAccessToken},
-						},
+					Subject: &authorizationpb.Subject_IndykiteAccessToken{
+						IndykiteAccessToken: testAccessToken,
 					},
 				},
 				Resources: []*authorizationpb.IsAuthorizedRequest_Resource{
-					{Id: "res1", Type: "Type", Actions: []string{"READ"}},
+					{ExternalId: "res1", Type: "Type", Actions: []string{"READ"}},
 				},
 				InputParams: inputParams,
 				PolicyTags:  policyTags,
@@ -329,7 +318,7 @@ var _ = Describe("indy.is_authorized", func() {
 				},
 			}, nil)
 
-			q := `x = indy.is_authorized("` + testAccessToken + `",[{"id": "res1", "type": "Type", "actions": ["READ"]}],` + regoOptions + `)` //nolint:lll
+			q := `x = indy.is_authorized({"id": "` + testAccessToken + `"},[{"externalId": "res1", "type": "Type", "actions": ["READ"]}],` + regoOptions + `)` //nolint:lll
 			r := rego.New(rego.Query(q))
 
 			ctx := context.Background()
@@ -341,22 +330,22 @@ var _ = Describe("indy.is_authorized", func() {
 			Expect(rs[0].Bindings["x"]).To(Not(BeNil()))
 		},
 		Entry("Empty options", `{}`, nil, nil),
-		Entry("input_params - String param", `{"input_params": { "string": "42" }}`,
+		Entry("inputParams - String param", `{"inputParams": { "string": "42" }}`,
 			map[string]*authorizationpb.InputParam{
 				"string": {Value: &authorizationpb.InputParam_StringValue{StringValue: "42"}},
 			},
 			nil,
 		),
-		Entry("input_params - Bool and integer param", `{"input_params": { "boolean": true, "integer": 42 }}`,
+		Entry("inputParams - Bool and integer param", `{"inputParams": { "boolean": true, "integer": 42 }}`,
 			map[string]*authorizationpb.InputParam{
 				"boolean": {Value: &authorizationpb.InputParam_BoolValue{BoolValue: true}},
 				"integer": {Value: &authorizationpb.InputParam_IntegerValue{IntegerValue: 42}},
 			},
 			nil,
 		),
-		Entry("policy_tags - wrong object type", `{"policy_tags": "invalid"}`, nil, nil),
-		Entry("policy_tags - empty array", `{"policy_tags": []}`, nil, nil),
-		Entry("policy_tags - wrong value in array", `{"policy_tags": [42]}`, nil, nil),
-		Entry("policy_tags - two values in array", `{"policy_tags": ["42", "24"]}`, nil, []string{"42", "24"}),
+		Entry("policyTags - wrong object type", `{"policyTags": "invalid"}`, nil, nil),
+		Entry("policyTags - empty array", `{"policyTags": []}`, nil, nil),
+		Entry("policyTags - wrong value in array", `{"policyTags": [42]}`, nil, nil),
+		Entry("policyTags - two values in array", `{"policyTags": ["42", "24"]}`, nil, []string{"42", "24"}),
 	)
 })
