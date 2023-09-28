@@ -15,21 +15,17 @@
 package functions
 
 import (
+	"bytes"
+
 	"github.com/indykite/indykite-sdk-go/errors"
 	authorizationpb "github.com/indykite/indykite-sdk-go/gen/indykite/authorization/v1beta1"
-	identitypb "github.com/indykite/indykite-sdk-go/gen/indykite/identity/v1beta2"
-	objects "github.com/indykite/indykite-sdk-go/gen/indykite/objects/v1beta1"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/open-policy-agent/opa/topdown/builtins"
 	"github.com/open-policy-agent/opa/types"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/indykite/opa-indykite-plugin/utilities"
-)
-
-const (
-	termPropertyType  = "property_type"
-	termPropertyValue = "property_value"
 )
 
 func init() {
@@ -38,26 +34,29 @@ func init() {
 			Name: "indy.is_authorized",
 			Decl: types.NewFunction(
 				types.Args(
-					types.Named("digital_twin_identifier", types.NewAny(
-						types.S,
+					types.Named("subject", types.NewAny(
 						types.NewObject([]*types.StaticProperty{
-							types.NewStaticProperty("digital_twin_id", types.S),
-							types.NewStaticProperty("tenant_id", types.S),
+							types.NewStaticProperty("id", types.S),
 						}, nil),
 						types.NewObject([]*types.StaticProperty{
-							types.NewStaticProperty(termPropertyType, types.S),
-							types.NewStaticProperty(termPropertyValue, types.S),
+							types.NewStaticProperty("id", types.S),
+							types.NewStaticProperty("type", types.S),
+						}, nil),
+						types.NewObject([]*types.StaticProperty{
+							types.NewStaticProperty("id", types.S),
+							types.NewStaticProperty("type", types.S),
+							types.NewStaticProperty("property", types.S),
 						}, nil),
 					)),
 					types.Named("resources", types.NewArray(nil, types.NewObject([]*types.StaticProperty{
-						types.NewStaticProperty("id", types.S),
+						types.NewStaticProperty("externalId", types.S),
 						types.NewStaticProperty("type", types.S),
 						types.NewStaticProperty("actions", types.NewArray(nil, types.S)),
 					}, nil))),
 					types.Named("options", types.NewObject(nil, types.NewDynamicProperty(types.S, types.A))),
 				),
-				types.Named("authorization_decisions", types.NewObject([]*types.StaticProperty{
-					types.NewStaticProperty("decision_time", types.N),
+				types.Named("authorizationResponse", types.NewObject([]*types.StaticProperty{
+					types.NewStaticProperty("decisionTime", types.N),
 					types.NewStaticProperty("decisions", types.NewObject(nil, types.NewDynamicProperty(
 						types.S,
 						types.NewObject(nil, types.NewDynamicProperty(
@@ -76,30 +75,24 @@ func init() {
 				}, nil)),
 			),
 		},
-		func(bCtx rego.BuiltinContext, dtIdentifier, resources, options *ast.Term) (*ast.Term, error) {
+		func(bCtx rego.BuiltinContext, subject, resources, options *ast.Term) (*ast.Term, error) {
 			optionsObj, err := validateOptionOperand(options, 2)
 			if err != nil {
 				return nil, err
 			}
-
 			req := &authorizationpb.IsAuthorizedRequest{}
 			req.PolicyTags = parsePolicyTags(optionsObj)
 			req.InputParams, err = parseInputParams(optionsObj)
 			if err != nil {
 				return nil, err
 			}
-			if err = ast.As(resources.Value, &req.Resources); err != nil {
-				return nil, err
-			}
-
-			digitalTwinIdentifier, err := extractDigitalTwinIdentifier(dtIdentifier.Value, 1)
+			req.Resources, err = parseIsResources(resources, 1)
 			if err != nil {
 				return nil, err
 			}
-			req.Subject = &authorizationpb.Subject{
-				Subject: &authorizationpb.Subject_DigitalTwinIdentifier{
-					DigitalTwinIdentifier: digitalTwinIdentifier,
-				},
+			req.Subject, err = extractSubject(subject.Value, 1)
+			if err != nil {
+				return nil, err
 			}
 
 			client, err := AuthorizationClient(bCtx.Context)
@@ -124,46 +117,6 @@ func init() {
 	)
 }
 
-func extractDigitalTwinIdentifier(identifierValue ast.Value, pos int) (*identitypb.DigitalTwinIdentifier, error) {
-	switch identifier := identifierValue.(type) {
-	case ast.String:
-		return &identitypb.DigitalTwinIdentifier{Filter: &identitypb.DigitalTwinIdentifier_AccessToken{
-			AccessToken: string(identifier),
-		}}, nil
-	case ast.Object:
-		isDigitalTwinObject := identifier.Get(ast.StringTerm("digital_twin_id")) != nil
-		if isDigitalTwinObject {
-			return parseDigitalTwin(identifier)
-		}
-		return parseDigitalTwinProperty(identifier)
-	}
-	// Next line is unreachable. OPA will complain based on declaration of function, when types do not match.
-	return nil, builtins.NewOperandTypeErr(pos, identifierValue, "string", "object")
-}
-
-func parseDigitalTwinProperty(identifier ast.Object) (*identitypb.DigitalTwinIdentifier, error) {
-	var propertyType, propertyValue ast.String
-	propertyType = identifier.Get(ast.StringTerm(termPropertyType)).Value.(ast.String)
-	propertyValue = identifier.Get(ast.StringTerm(termPropertyValue)).Value.(ast.String)
-
-	return &identitypb.DigitalTwinIdentifier{Filter: &identitypb.DigitalTwinIdentifier_PropertyFilter{
-		PropertyFilter: &identitypb.PropertyFilter{
-			Type:  string(propertyType),
-			Value: objects.String(string(propertyValue)),
-		},
-	}}, nil
-}
-
-func parseDigitalTwin(identifier ast.Object) (*identitypb.DigitalTwinIdentifier, error) {
-	var dtID, tenantID ast.String
-	dtID = identifier.Get(ast.StringTerm("digital_twin_id")).Value.(ast.String)
-	tenantID = identifier.Get(ast.StringTerm("tenant_id")).Value.(ast.String)
-
-	return &identitypb.DigitalTwinIdentifier{Filter: &identitypb.DigitalTwinIdentifier_DigitalTwin{
-		DigitalTwin: &identitypb.DigitalTwin{Id: string(dtID), TenantId: string(tenantID)},
-	}}, nil
-}
-
 func buildIsAuthorizedObjectFromResponse(resp *authorizationpb.IsAuthorizedResponse) ast.Object {
 	decisions := ast.NewObject()
 
@@ -183,9 +136,28 @@ func buildIsAuthorizedObjectFromResponse(resp *authorizationpb.IsAuthorizedRespo
 
 	obj := ast.NewObject(
 		ast.Item(ast.StringTerm("error"), ast.NullTerm()),
-		ast.Item(ast.StringTerm("decision_time"), ast.IntNumberTerm(int(resp.DecisionTime.AsTime().Unix()))),
+		ast.Item(ast.StringTerm("decisionTime"), ast.IntNumberTerm(int(resp.DecisionTime.AsTime().Unix()))),
 		ast.Item(ast.StringTerm("decisions"), ast.NewTerm(decisions)),
 	)
 
 	return obj
+}
+
+func parseIsResources(term *ast.Term, pos int) ([]*authorizationpb.IsAuthorizedRequest_Resource, error) {
+	resources, err := builtins.ArrayOperand(term.Value, pos)
+	if err != nil {
+		return nil, err
+	}
+	resp := make([]*authorizationpb.IsAuthorizedRequest_Resource, resources.Len())
+	for i := 0; i < resources.Len(); i++ {
+		e := resources.Elem(i)
+		if v, ok := e.Value.(ast.Object); ok {
+			var res = &authorizationpb.IsAuthorizedRequest_Resource{}
+			if err = protojson.Unmarshal(bytes.NewBufferString(v.String()).Bytes(), res); err != nil {
+				return nil, err
+			}
+			resp[i] = res
+		}
+	}
+	return resp, nil
 }

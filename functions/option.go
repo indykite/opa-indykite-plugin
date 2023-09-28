@@ -16,12 +16,16 @@ package functions
 
 import (
 	authorizationpb "github.com/indykite/indykite-sdk-go/gen/indykite/authorization/v1beta1"
+	objects "github.com/indykite/indykite-sdk-go/gen/indykite/objects/v1beta1"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/topdown/builtins"
 )
 
-const inputParamsKey = "input_params"
-const policyTagsKey = "policy_tags"
+const inputParamsKey = "inputParams"
+const policyTagsKey = "policyTags"
+const subjectTypeToken = "token"
+const subjectTypeID = "id"
+const subjectTypeProperty = "property"
 
 var allowedKeyNames = [...]string{
 	inputParamsKey,
@@ -134,4 +138,53 @@ func parseInputParam(value *ast.Term) (*authorizationpb.InputParam, error) {
 	}
 	// Next line is unreachable. OPA will complain based on declaration of function, when types do not match.
 	return nil, builtins.NewOperandTypeErr(3, value.Value, "string", "number", "boolean")
+}
+
+func extractSubject(subjectValue ast.Value, pos int) (*authorizationpb.Subject, error) {
+	subject, ok := subjectValue.(ast.Object)
+	if !ok {
+		return nil, builtins.NewOperandTypeErr(pos, subjectValue, "object")
+	}
+	idObject := subject.Get(ast.StringTerm("id"))
+	if idObject == nil {
+		return nil, builtins.NewOperandTypeErr(pos, subjectValue, "id")
+	}
+	idValue := idObject.Value.(ast.String)
+
+	switch getSubjectType(subject) {
+	case subjectTypeToken:
+		return &authorizationpb.Subject{Subject: &authorizationpb.Subject_IndykiteAccessToken{
+			IndykiteAccessToken: string(idValue),
+		}}, nil
+	case subjectTypeID:
+		return &authorizationpb.Subject{Subject: &authorizationpb.Subject_DigitalTwinId{
+			DigitalTwinId: &authorizationpb.DigitalTwin{Id: string(idValue)},
+		}}, nil
+	case subjectTypeProperty:
+		propertyObject := subject.Get(ast.StringTerm("property"))
+		if propertyObject == nil {
+			return nil, builtins.NewOperandTypeErr(pos, subjectValue, "property")
+		}
+		propertyValue := propertyObject.Value.(ast.String)
+		return &authorizationpb.Subject{
+			Subject: &authorizationpb.Subject_DigitalTwinProperty{
+				DigitalTwinProperty: &authorizationpb.Property{
+					Type:  string(propertyValue),
+					Value: objects.String(string(idValue)),
+				},
+			},
+		}, nil
+	}
+
+	// Next line is unreachable. OPA will complain based on declaration of function, when types do not match.
+	return nil, builtins.NewOperandTypeErr(pos, subjectValue, "object")
+}
+
+func getSubjectType(subject ast.Object) string {
+	typeObject := subject.Get(ast.StringTerm("type"))
+	if typeObject == nil {
+		return subjectTypeToken
+	}
+	typeValue := typeObject.Value.(ast.String)
+	return string(typeValue)
 }

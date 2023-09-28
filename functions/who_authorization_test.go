@@ -64,8 +64,8 @@ var _ = Describe("indy.who_authorized", func() {
 			gomock.Any(),
 			WrapMatcher(EqualProto(&authorizationpb.WhoAuthorizedRequest{
 				Resources: []*authorizationpb.WhoAuthorizedRequest_Resource{
-					{Id: "res1", Type: "Type", Actions: []string{"READ"}},
-					{Id: "res2", Type: "Type", Actions: []string{"READ"}},
+					{ExternalId: "res1", Type: "Type", Actions: []string{"READ"}},
+					{ExternalId: "res2", Type: "Type", Actions: []string{"READ"}},
 				},
 				InputParams: map[string]*authorizationpb.InputParam{
 					"string":  {Value: &authorizationpb.InputParam_StringValue{StringValue: "42"}},
@@ -100,7 +100,7 @@ var _ = Describe("indy.who_authorized", func() {
 		}, nil)
 
 		r := rego.New(rego.Query(
-			`x = indy.who_authorized([{"id": "res1", "type": "Type", "actions": ["READ"]},{"id": "res2", "type": "Type", "actions": ["READ"]}], { "input_params": {"string": "42", "integer": 42, "double": 4.2, "boolean": true}, "policy_tags": ["42"]})`)) //nolint:lll
+			`x = indy.who_authorized([{"externalId": "res1", "type": "Type", "actions": ["READ"]},{"externalId": "res2", "type": "Type", "actions": ["READ"]}], { "inputParams": {"string": "42", "integer": 42, "double": 4.2, "boolean": true}, "policyTags": ["42"]})`)) //nolint:lll
 
 		ctx := context.Background()
 		query, err := r.PrepareForEval(ctx)
@@ -109,8 +109,8 @@ var _ = Describe("indy.who_authorized", func() {
 		rs, err := query.Eval(ctx)
 		Expect(err).To(Succeed())
 		Expect(rs[0].Bindings["x"]).To(MatchAllKeys(Keys{
-			"error":         BeNil(),
-			"decision_time": BeEquivalentTo("1645543102"), // All numbers are json.Number ie string,
+			"error":        BeNil(),
+			"decisionTime": BeEquivalentTo("1645543102"), // All numbers are json.Number ie string,
 			"decisions": MatchAllKeys(Keys{
 				"Type": MatchAllKeys(Keys{
 					"res1": MatchAllKeys(Keys{
@@ -167,7 +167,7 @@ var _ = Describe("indy.who_authorized", func() {
 
 		// With StrictBuiltinErrors
 		r := rego.New(
-			rego.Query(`x = indy.who_authorized([{"id": "res1", "type": "Type", "actions": ["READ"]}], {})`),
+			rego.Query(`x = indy.who_authorized([{"externalId": "res1", "type": "Type", "actions": ["READ"]}], {})`),
 			rego.StrictBuiltinErrors(true),
 		)
 
@@ -179,7 +179,7 @@ var _ = Describe("indy.who_authorized", func() {
 		Expect(err).To(MatchError(ContainSubstring("indy.who_authorized: client error: code = Internal desc = oops")))
 
 		// Verify that, without StrictBuiltinErrors error is nil and response too
-		r = rego.New(rego.Query(`x = indy.who_authorized([{"id": "res1", "type": "Type", "actions": ["READ"]}], {})`)) //nolint:lll
+		r = rego.New(rego.Query(`x = indy.who_authorized([{"externalId": "res1", "type": "Type", "actions": ["READ"]}], {})`)) //nolint:lll
 
 		query, err = r.PrepareForEval(ctx)
 		Expect(err).To(Succeed())
@@ -195,7 +195,7 @@ var _ = Describe("indy.who_authorized", func() {
 
 		// With StrictBuiltinErrors
 		r := rego.New(
-			rego.Query(`x = indy.who_authorized([{"id": "res1", "type": "Type", "actions": ["READ"]}], {})`), //nolint:lll
+			rego.Query(`x = indy.who_authorized([{"externalId": "res1", "type": "Type", "actions": ["READ"]}], {})`), //nolint:lll
 			rego.StrictBuiltinErrors(true),
 		)
 
@@ -207,7 +207,7 @@ var _ = Describe("indy.who_authorized", func() {
 		Expect(err).To(MatchError(ContainSubstring("indy.who_authorized: missing endpoint")))
 
 		// Verify that, without StrictBuiltinErrors error is nil and response too
-		r = rego.New(rego.Query(`x = indy.who_authorized([{"id": "res1", "type": "Type", "actions": ["READ"]}], {})`)) //nolint:lll
+		r = rego.New(rego.Query(`x = indy.who_authorized([{"externalId": "res1", "type": "Type", "actions": ["READ"]}], {})`)) //nolint:lll
 
 		query, err = r.PrepareForEval(ctx)
 		Expect(err).To(Succeed())
@@ -220,7 +220,7 @@ var _ = Describe("indy.who_authorized", func() {
 		func(regoOptions string, inputParams map[string]*authorizationpb.InputParam, policyTags []string) {
 			request := &authorizationpb.WhoAuthorizedRequest{
 				Resources: []*authorizationpb.WhoAuthorizedRequest_Resource{
-					{Id: "res1", Type: "Type", Actions: []string{"READ"}},
+					{ExternalId: "res1", Type: "Type", Actions: []string{"READ"}},
 				},
 				InputParams: inputParams,
 				PolicyTags:  policyTags,
@@ -246,7 +246,7 @@ var _ = Describe("indy.who_authorized", func() {
 				},
 			}, nil)
 
-			q := `x = indy.who_authorized([{"id": "res1", "type": "Type", "actions": ["READ"]}],` + regoOptions + `)`
+			q := `x = indy.who_authorized([{"externalId": "res1", "type": "Type", "actions": ["READ"]}],` + regoOptions + `)` //nolint:lll
 			r := rego.New(rego.Query(q))
 
 			ctx := context.Background()
@@ -258,22 +258,22 @@ var _ = Describe("indy.who_authorized", func() {
 			Expect(rs[0].Bindings["x"]).To(Not(BeNil()))
 		},
 		Entry("Empty options", `{}`, nil, nil),
-		Entry("input_params - String param", `{"input_params": { "string": "42" }}`,
+		Entry("inputParams - String param", `{"inputParams": { "string": "42" }}`,
 			map[string]*authorizationpb.InputParam{
 				"string": {Value: &authorizationpb.InputParam_StringValue{StringValue: "42"}},
 			},
 			nil,
 		),
-		Entry("input_params - Bool and integer param", `{"input_params": { "boolean": true, "integer": 42 }}`,
+		Entry("inputParams - Bool and integer param", `{"inputParams": { "boolean": true, "integer": 42 }}`,
 			map[string]*authorizationpb.InputParam{
 				"boolean": {Value: &authorizationpb.InputParam_BoolValue{BoolValue: true}},
 				"integer": {Value: &authorizationpb.InputParam_IntegerValue{IntegerValue: 42}},
 			},
 			nil,
 		),
-		Entry("policy_tags - wrong object type", `{"policy_tags": "invalid"}`, nil, nil),
-		Entry("policy_tags - empty array", `{"policy_tags": []}`, nil, nil),
-		Entry("policy_tags - wrong value in array", `{"policy_tags": [42]}`, nil, nil),
-		Entry("policy_tags - two values in array", `{"policy_tags": ["42", "24"]}`, nil, []string{"42", "24"}),
+		Entry("policyTags - wrong object type", `{"policyTags": "invalid"}`, nil, nil),
+		Entry("policyTags - empty array", `{"policyTags": []}`, nil, nil),
+		Entry("policyTags - wrong value in array", `{"policyTags": [42]}`, nil, nil),
+		Entry("policyTags - two values in array", `{"policyTags": ["42", "24"]}`, nil, []string{"42", "24"}),
 	)
 })
