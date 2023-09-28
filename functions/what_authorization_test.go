@@ -21,7 +21,6 @@ import (
 
 	"github.com/indykite/indykite-sdk-go/authorization"
 	authorizationpb "github.com/indykite/indykite-sdk-go/gen/indykite/authorization/v1beta1"
-	identitypb "github.com/indykite/indykite-sdk-go/gen/indykite/identity/v1beta2"
 	objects "github.com/indykite/indykite-sdk-go/gen/indykite/objects/v1beta1"
 	"github.com/indykite/indykite-sdk-go/test"
 	authorizationm "github.com/indykite/indykite-sdk-go/test/authorization/v1beta1"
@@ -116,7 +115,7 @@ var _ = Describe("indy.what_authorized", func() {
 				},
 			}, nil)
 
-			r := rego.New(rego.Query(`x = indy.what_authorized(` + c.regoParam1 + `,[{"type": "TypeOne", "actions": ["READ"]},{"type": "TypeTwo"}], { "input_params": {"string": "42", "integer": 42, "double": 4.2, "boolean": true}, "policy_tags": ["42"]})`)) //nolint:lll
+			r := rego.New(rego.Query(`x = indy.what_authorized(` + c.regoParam1 + `,[{"type": "TypeOne", "actions": ["READ"]},{"type": "TypeTwo"}], { "inputParams": {"string": "42", "integer": 42, "double": 4.2, "boolean": true}, "policyTags": ["42"]})`)) //nolint:lll
 
 			ctx := context.Background()
 			query, err := r.PrepareForEval(ctx)
@@ -125,8 +124,8 @@ var _ = Describe("indy.what_authorized", func() {
 			rs, err := query.Eval(ctx)
 			Expect(err).To(Succeed())
 			Expect(rs[0].Bindings["x"]).To(MatchAllKeys(Keys{
-				"error":         BeNil(),
-				"decision_time": c.decisionTimeMatcher,
+				"error":        BeNil(),
+				"decisionTime": c.decisionTimeMatcher,
 				"decisions": MatchAllKeys(Keys{
 					"TypeOne": MatchAllKeys(Keys{
 						"READ": MatchAllElements(idFn, Elements{
@@ -153,28 +152,33 @@ var _ = Describe("indy.what_authorized", func() {
 		},
 		Entry("Access Token", &dtIDCase{
 			reqSubject: &authorizationpb.Subject{
-				Subject: &authorizationpb.Subject_DigitalTwinIdentifier{
-					DigitalTwinIdentifier: &identitypb.DigitalTwinIdentifier{
-						Filter: &identitypb.DigitalTwinIdentifier_AccessToken{AccessToken: testAccessToken},
-					},
+				Subject: &authorizationpb.Subject_IndykiteAccessToken{
+					IndykiteAccessToken: testAccessToken,
 				},
 			},
 			respDecisionTime:    timestamppb.New(time.Date(2022, 02, 22, 15, 18, 22, 0, time.UTC)),
 			respTTL:             durationpb.New(time.Minute * 90),
 			decisionTimeMatcher: BeEquivalentTo("1645543102"), // All numbers are json.Number ie string
 			ttlMatcher:          BeEquivalentTo("5400"),
-			regoParam1:          `"` + testAccessToken + `"`,
+			regoParam1:          `{"id": "` + testAccessToken + `"}`,
+		}),
+		Entry("Access Token - with type", &dtIDCase{
+			reqSubject: &authorizationpb.Subject{
+				Subject: &authorizationpb.Subject_IndykiteAccessToken{
+					IndykiteAccessToken: testAccessToken,
+				},
+			},
+			respDecisionTime:    timestamppb.New(time.Date(2022, 02, 22, 15, 18, 22, 0, time.UTC)),
+			respTTL:             durationpb.New(time.Minute * 90),
+			decisionTimeMatcher: BeEquivalentTo("1645543102"), // All numbers are json.Number ie string
+			ttlMatcher:          BeEquivalentTo("5400"),
+			regoParam1:          `{"id": "` + testAccessToken + `", "type": "token"}`,
 		}),
 		Entry("DigitalTwin", &dtIDCase{
 			reqSubject: &authorizationpb.Subject{
-				Subject: &authorizationpb.Subject_DigitalTwinIdentifier{
-					DigitalTwinIdentifier: &identitypb.DigitalTwinIdentifier{
-						Filter: &identitypb.DigitalTwinIdentifier_DigitalTwin{
-							DigitalTwin: &identitypb.DigitalTwin{
-								Id:       "gid:AAAAFezuHiJHiUeRjrIJV8k3oKo",
-								TenantId: "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35f",
-							},
-						},
+				Subject: &authorizationpb.Subject_DigitalTwinId{
+					DigitalTwinId: &authorizationpb.DigitalTwin{
+						Id: "gid:AAAAFezuHiJHiUeRjrIJV8k3oKo",
 					},
 				},
 			},
@@ -183,18 +187,14 @@ var _ = Describe("indy.what_authorized", func() {
 			respTTL:             nil,
 			decisionTimeMatcher: BeEquivalentTo("0"),
 			ttlMatcher:          BeEquivalentTo("0"),
-			regoParam1:          `{"digital_twin_id": "gid:AAAAFezuHiJHiUeRjrIJV8k3oKo", "tenant_id": "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35f"}`, // nolint:lll
+			regoParam1:          `{"id": "gid:AAAAFezuHiJHiUeRjrIJV8k3oKo", "type": "id"}`,
 		}),
 		Entry("DigitalTwin property", &dtIDCase{
 			reqSubject: &authorizationpb.Subject{
-				Subject: &authorizationpb.Subject_DigitalTwinIdentifier{
-					DigitalTwinIdentifier: &identitypb.DigitalTwinIdentifier{
-						Filter: &identitypb.DigitalTwinIdentifier_PropertyFilter{
-							PropertyFilter: &identitypb.PropertyFilter{
-								Type:  "email",
-								Value: objects.String("sam@sung.com"),
-							},
-						},
+				Subject: &authorizationpb.Subject_DigitalTwinProperty{
+					DigitalTwinProperty: &authorizationpb.Property{
+						Type:  "email",
+						Value: objects.String("sam@sung.com"),
 					},
 				},
 			},
@@ -203,7 +203,7 @@ var _ = Describe("indy.what_authorized", func() {
 			respTTL:             nil,
 			decisionTimeMatcher: BeEquivalentTo("0"),
 			ttlMatcher:          BeEquivalentTo("0"),
-			regoParam1:          `{"property_type": "email", "property_value": "sam@sung.com"}`,
+			regoParam1:          `{"id": "sam@sung.com", "type": "property", "property": "email"}`,
 		}),
 	)
 
@@ -232,26 +232,19 @@ var _ = Describe("indy.what_authorized", func() {
 				"error": MatchAllKeys(errKeys),
 			}))
 		},
-		Entry("Request validation fail", `"a", [{"type": "Type", "actions": ["READ"]}], {}`,
+		Entry("Request validation fail", `{"id": "a"}, [{"type": "Type", "actions": ["READ"]}], {}`,
 			"unable to call WhatAuthorized client endpoint", "AccessToken: value length must be at least 20 runes"),
-		Entry("Invalid access token", `"aaaaaaaaaaaaaaaaaaaa", [{"type": "Type", "actions": ["READ"]}], {}`,
+		Entry("Invalid access token", `{"id": "aaaaaaaaaaaaaaaaaaaa"}, [{"type": "Type", "actions": ["READ"]}], {}`,
 			"invalid token format", "invalid JWT"),
-		Entry("Empty resource_references", `"`+testAccessToken+`", [], {}`,
+		Entry("Empty resource_references", `{"id": "`+testAccessToken+`"}, [], {}`,
 			"unable to call WhatAuthorized client endpoint",
 			"invalid WhatAuthorizedRequest.ResourceTypes: value must contain between 1 and 10 items, inclusive"),
-		Entry("Invalid digital twin", `{"digital_twin_id": "22", "tenant_id": ""}, [{"type": "Type", "actions": ["READ"]}], {}`,
+		Entry("Invalid digital twin", `{"id": "abc", "type": "id"}, [{"type": "Type", "actions": ["READ"]}], {}`,
 			"unable to call WhatAuthorized client endpoint",
 			"invalid DigitalTwin.Id: value length must be between 27 and 100 runes"),
-		Entry("Invalid tenant_id", `{"digital_twin_id": "gid:AAAAA-l_3DSuyE6Sm5nRSyDv35a", "tenant_id": ""}, [{"type": "Type", "actions": ["READ"]}], {}`,
+		Entry("Invalid propertyType", `{"id": "", "type": "property", "property": ""}, [{"type": "Type", "actions": ["READ"]}, {"type": "Type", "actions": ["READ"]}], {}`,
 			"unable to call WhatAuthorized client endpoint",
-			"invalid DigitalTwin.TenantId: value length must be between 27 and 100 runes"),
-		//	TODO: include these once proto file has validation on PropertyFilter
-		XEntry("Invalid property_type", `{"property_type": "", "property_value": ""}, [{"id": "res1", "type": "Type", "actions": ["READ"]}, {"id": "res2", "type": "Type", "actions": ["READ"]}], {}`,
-			"unable to call WhatAuthorized client endpoint",
-			"some error here"),
-		XEntry("Invalid property_value", `{"property_type": "email", "property_value": ""}, [{"id": "res1", "type": "Type", "actions": ["READ"]}, {"id": "res2", "type": "Type", "actions": ["READ"]}], {}`,
-			"unable to call WhatAuthorized client endpoint",
-			"some error here"),
+			"invalid Property.Type: value length must be between 2 and 20 runes"),
 	)
 
 	It("Service backend error", func() {
@@ -263,7 +256,7 @@ var _ = Describe("indy.what_authorized", func() {
 
 		// With StrictBuiltinErrors
 		r := rego.New(
-			rego.Query(`x = indy.what_authorized("`+testAccessToken+`", [{"type": "Type", "actions": ["READ"]}], {})`), //nolint:lll
+			rego.Query(`x = indy.what_authorized({"id": "`+testAccessToken+`"}, [{"type": "Type", "actions": ["READ"]}], {})`), //nolint:lll
 			rego.StrictBuiltinErrors(true),
 		)
 
@@ -275,7 +268,7 @@ var _ = Describe("indy.what_authorized", func() {
 		Expect(err).To(MatchError(ContainSubstring("indy.what_authorized: client error: code = Internal desc = oops")))
 
 		// Verify that, without StrictBuiltinErrors error is nil and response too
-		r = rego.New(rego.Query(`x = indy.what_authorized("` + testAccessToken + `", [{"type": "Type", "actions": ["READ"]}], {})`)) //nolint:lll
+		r = rego.New(rego.Query(`x = indy.what_authorized({"id": "` + testAccessToken + `"}, [{"type": "Type", "actions": ["READ"]}], {})`)) //nolint:lll
 
 		query, err = r.PrepareForEval(ctx)
 		Expect(err).To(Succeed())
@@ -292,7 +285,7 @@ var _ = Describe("indy.what_authorized", func() {
 
 		// With StrictBuiltinErrors
 		r := rego.New(
-			rego.Query(`x = indy.what_authorized("`+testAccessToken+`", [{"type": "Type", "actions": ["READ"]}], {})`), //nolint:lll
+			rego.Query(`x = indy.what_authorized({"id": "`+testAccessToken+`"}, [{"type": "Type", "actions": ["READ"]}], {})`), //nolint:lll
 			rego.StrictBuiltinErrors(true),
 		)
 
@@ -304,7 +297,7 @@ var _ = Describe("indy.what_authorized", func() {
 		Expect(err).To(MatchError(ContainSubstring("indy.what_authorized: missing endpoint")))
 
 		// Verify that, without StrictBuiltinErrors error is nil and response too
-		r = rego.New(rego.Query(`x = indy.what_authorized("` + testAccessToken + `", [{"type": "Type", "actions": ["READ"]}], {})`)) //nolint:lll
+		r = rego.New(rego.Query(`x = indy.what_authorized({"id": "` + testAccessToken + `"}, [{"type": "Type", "actions": ["READ"]}], {})`)) //nolint:lll
 
 		query, err = r.PrepareForEval(ctx)
 		Expect(err).To(Succeed())
@@ -317,10 +310,8 @@ var _ = Describe("indy.what_authorized", func() {
 		func(regoOptions string, inputParams map[string]*authorizationpb.InputParam, policyTags []string) {
 			request := &authorizationpb.WhatAuthorizedRequest{
 				Subject: &authorizationpb.Subject{
-					Subject: &authorizationpb.Subject_DigitalTwinIdentifier{
-						DigitalTwinIdentifier: &identitypb.DigitalTwinIdentifier{
-							Filter: &identitypb.DigitalTwinIdentifier_AccessToken{AccessToken: testAccessToken},
-						},
+					Subject: &authorizationpb.Subject_IndykiteAccessToken{
+						IndykiteAccessToken: testAccessToken,
 					},
 				},
 				ResourceTypes: []*authorizationpb.WhatAuthorizedRequest_ResourceType{
@@ -348,7 +339,7 @@ var _ = Describe("indy.what_authorized", func() {
 				},
 			}, nil)
 
-			q := `x = indy.what_authorized("` + testAccessToken + `",[{"type": "Type", "actions": ["READ"]}],` + regoOptions + `)` // nolint:lll
+			q := `x = indy.what_authorized({"id": "` + testAccessToken + `"},[{"type": "Type", "actions": ["READ"]}],` + regoOptions + `)` // nolint:lll
 			r := rego.New(rego.Query(q))
 
 			ctx := context.Background()
@@ -360,22 +351,22 @@ var _ = Describe("indy.what_authorized", func() {
 			Expect(rs[0].Bindings["x"]).To(Not(BeNil()))
 		},
 		Entry("Empty options", `{}`, nil, nil),
-		Entry("input_params - String param", `{"input_params": { "string": "42" }}`,
+		Entry("inputParams - String param", `{"inputParams": { "string": "42" }}`,
 			map[string]*authorizationpb.InputParam{
 				"string": {Value: &authorizationpb.InputParam_StringValue{StringValue: "42"}},
 			},
 			nil,
 		),
-		Entry("input_params - Bool and integer param", `{"input_params": { "boolean": true, "integer": 42 }}`,
+		Entry("inputParams - Bool and integer param", `{"inputParams": { "boolean": true, "integer": 42 }}`,
 			map[string]*authorizationpb.InputParam{
 				"boolean": {Value: &authorizationpb.InputParam_BoolValue{BoolValue: true}},
 				"integer": {Value: &authorizationpb.InputParam_IntegerValue{IntegerValue: 42}},
 			},
 			nil,
 		),
-		Entry("policy_tags - wrong object type", `{"policy_tags": "invalid"}`, nil, nil),
-		Entry("policy_tags - empty array", `{"policy_tags": []}`, nil, nil),
-		Entry("policy_tags - wrong value in array", `{"policy_tags": [42]}`, nil, nil),
-		Entry("policy_tags - two values in array", `{"policy_tags": ["42", "24"]}`, nil, []string{"42", "24"}),
+		Entry("policyTags - wrong object type", `{"policyTags": "invalid"}`, nil, nil),
+		Entry("policyTags - empty array", `{"policyTags": []}`, nil, nil),
+		Entry("policyTags - wrong value in array", `{"policyTags": [42]}`, nil, nil),
+		Entry("policyTags - two values in array", `{"policyTags": ["42", "24"]}`, nil, []string{"42", "24"}),
 	)
 })

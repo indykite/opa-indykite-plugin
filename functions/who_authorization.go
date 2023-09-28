@@ -15,11 +15,15 @@
 package functions
 
 import (
+	"bytes"
+
 	"github.com/indykite/indykite-sdk-go/errors"
 	authorizationpb "github.com/indykite/indykite-sdk-go/gen/indykite/authorization/v1beta1"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
+	"github.com/open-policy-agent/opa/topdown/builtins"
 	"github.com/open-policy-agent/opa/types"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/indykite/opa-indykite-plugin/utilities"
 )
@@ -31,14 +35,14 @@ func init() {
 			Decl: types.NewFunction(
 				types.Args(
 					types.Named("resources", types.NewArray(nil, types.NewObject([]*types.StaticProperty{
-						types.NewStaticProperty("id", types.S),
+						types.NewStaticProperty("externalId", types.S),
 						types.NewStaticProperty("type", types.S),
 						types.NewStaticProperty("actions", types.NewArray(nil, types.S)),
 					}, nil))),
 					types.Named("options", types.NewObject(nil, types.NewDynamicProperty(types.S, types.A))),
 				),
-				types.Named("authorization_decisions", types.NewObject([]*types.StaticProperty{
-					types.NewStaticProperty("decision_time", types.N),
+				types.Named("authorizationResponse", types.NewObject([]*types.StaticProperty{
+					types.NewStaticProperty("decisionTime", types.N),
 					types.NewStaticProperty("decisions", types.NewObject(nil, types.NewDynamicProperty(
 						types.S,
 						types.NewObject(nil, types.NewDynamicProperty(
@@ -66,10 +70,10 @@ func init() {
 			if err != nil {
 				return nil, err
 			}
-			if err = ast.As(resources.Value, &req.Resources); err != nil {
+			req.Resources, err = parseWhoResources(resources, 1)
+			if err != nil {
 				return nil, err
 			}
-
 			client, err := AuthorizationClient(bCtx.Context)
 			if err != nil {
 				return nil, err
@@ -116,9 +120,28 @@ func buildWhoAuthorizedObjectFromResponse(resp *authorizationpb.WhoAuthorizedRes
 
 	obj := ast.NewObject(
 		ast.Item(ast.StringTerm("error"), ast.NullTerm()),
-		ast.Item(ast.StringTerm("decision_time"), ast.IntNumberTerm(int(resp.DecisionTime.AsTime().Unix()))),
+		ast.Item(ast.StringTerm("decisionTime"), ast.IntNumberTerm(int(resp.DecisionTime.AsTime().Unix()))),
 		ast.Item(ast.StringTerm("decisions"), ast.NewTerm(decisions)),
 	)
 
 	return obj
+}
+
+func parseWhoResources(term *ast.Term, pos int) ([]*authorizationpb.WhoAuthorizedRequest_Resource, error) {
+	resources, err := builtins.ArrayOperand(term.Value, pos)
+	if err != nil {
+		return nil, err
+	}
+	resp := make([]*authorizationpb.WhoAuthorizedRequest_Resource, resources.Len())
+	for i := 0; i < resources.Len(); i++ {
+		e := resources.Elem(i)
+		if v, ok := e.Value.(ast.Object); ok {
+			var res = &authorizationpb.WhoAuthorizedRequest_Resource{}
+			if err = protojson.Unmarshal(bytes.NewBufferString(v.String()).Bytes(), res); err != nil {
+				return nil, err
+			}
+			resp[i] = res
+		}
+	}
+	return resp, nil
 }
