@@ -24,7 +24,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Check out code
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
 
             - name: Set up Go
               uses: actions/setup-go@v4
@@ -49,10 +49,10 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Check out jarvis-proto code
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
             - name: Create .trivyignore file
               run: echo '${{ vars.TRIVY_IGNORE }}' > .trivyignore
-            - uses: aquasecurity/trivy-action@0.11.2
+            - uses: aquasecurity/trivy-action@0.12.0
               with:
                   scan-type: config
                   # Scan only directory, where Dockerfiles are, until Trivy issue is fixed

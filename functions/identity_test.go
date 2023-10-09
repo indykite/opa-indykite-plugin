@@ -21,11 +21,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	identitypb "github.com/indykite/indykite-sdk-go/gen/indykite/identity/v1beta2"
 	"github.com/indykite/indykite-sdk-go/identity"
 	identitym "github.com/indykite/indykite-sdk-go/test/identity/v1beta2"
 	"github.com/open-policy-agent/opa/rego"
+	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
