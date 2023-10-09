@@ -19,12 +19,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	"github.com/indykite/indykite-sdk-go/authorization"
 	authorizationpb "github.com/indykite/indykite-sdk-go/gen/indykite/authorization/v1beta1"
 	"github.com/indykite/indykite-sdk-go/test"
 	authorizationm "github.com/indykite/indykite-sdk-go/test/authorization/v1beta1"
 	"github.com/open-policy-agent/opa/rego"
+	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
