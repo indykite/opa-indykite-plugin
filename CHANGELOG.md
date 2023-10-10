@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/indykite/opa-indykite-plugin/compare/v1.0.3...v1.1.0) (2023-10-10)
+
+
+### Features
+
+* change subject format ([bc30ded](https://github.com/indykite/opa-indykite-plugin/commit/bc30dedf236f918de2396d796ae580fda2d9920f))
+
+
+### Miscellaneous Chores
+
+* update dependencies ([1a03c9f](https://github.com/indykite/opa-indykite-plugin/commit/1a03c9f26ec8c7f4b541d960dc13846ae668dee2))
+
 ## [1.0.3](https://github.com/indykite/opa-indykite-plugin/compare/v1.0.2...v1.0.3) (2023-08-24)
 
 
