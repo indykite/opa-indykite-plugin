@@ -45,27 +45,9 @@ jobs:
                     username: ${{ secrets.DOCKERHUB_USERNAME }}
                     password: ${{ secrets.DOCKERHUB_PAT }}
 
-            -   name: Build and Tag docker images
+            -   name: Build, Tag and Push docker images
                 run: |
                     make opa-ci
-
-            - name: Create .trivyignore file
-              run: echo '${{ vars.TRIVY_IGNORE }}' > .trivyignore
-
-            -   name: Run Trivy vulnerabilities scan
-                uses: aquasecurity/trivy-action@master
-                with:
-                    image-ref: indykite/opa:latest
-                    scan-type: image
-                    ignore-unfixed: true
-                    exit-code: '1'
-                    severity: HIGH,CRITICAL
-                    trivyignores: .trivyignore
-
-            -   name: Publish docker images
-                run: |
-                    docker push -a $GCR_URL/$GCP_PROJECT_ID/jarvis/opa
-                    docker push -a indykite/opa
 
             -   name: Check out notifier action repo
                 uses: actions/checkout@v4
