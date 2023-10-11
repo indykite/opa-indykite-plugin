@@ -39,7 +39,15 @@ tidy:
 	@GO111MODULE=on go mod tidy
 
 opa-ci:
-	@docker build -t indykite/opa:latest --build-arg SHORT_SHA=$(SHORT_SHA) --build-arg TAG_NAME=$(VERSION) --build-arg BUILD_DATE=$(NOW) --build-arg TAG_NAME=$(GITHUB_REF) .
-	@docker tag indykite/opa $(GCR_URL)/$(GCP_PROJECT_ID)/jarvis/opa
-	@docker tag indykite/opa $(GCR_URL)/$(GCP_PROJECT_ID)/jarvis/opa:$(SHORT_SHA)
-	@docker tag indykite/opa indykite/opa:$(VERSION)
+	@docker buildx create --name opabuilder --use
+	@docker buildx build --push \
+		--platform linux/amd64,linux/arm64 \
+ 		-t indykite/opa:test \
+ 		-t $(GCR_URL)/$(GCP_PROJECT_ID)/jarvis/opa:test \
+ 		-t $(GCR_URL)/$(GCP_PROJECT_ID)/jarvis/opa:$(SHORT_SHA) \
+ 		--build-arg SHORT_SHA=$(SHORT_SHA) \
+ 		--build-arg TAG_NAME=$(VERSION) \
+ 		--build-arg BUILD_DATE=$(NOW) \
+ 		--build-arg TAG_NAME=$(GITHUB_REF) \
+ 		.
+	@docker buildx rm opabuilder
