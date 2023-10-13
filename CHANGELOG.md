@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/indykite/opa-indykite-plugin/compare/v1.1.0...v1.1.1) (2023-10-13)
+
+
+### Miscellaneous Chores
+
+* build for both arm and amd architecture ([10fc924](https://github.com/indykite/opa-indykite-plugin/commit/10fc924cefb98417b5a3111885d86e582812d639))
+
 ## [1.1.0](https://github.com/indykite/opa-indykite-plugin/compare/v1.0.3...v1.1.0) (2023-10-10)
 
 
