@@ -42,7 +42,8 @@ opa-ci:
 	@docker buildx create --name opabuilder --use
 	@docker buildx build --push \
 		--platform linux/amd64,linux/arm64 \
- 		-t indykite/opa:test \
+ 		-t indykite/opa:latest \
+ 		-t indykite/opa:$(VERSION) \
  		-t $(GCR_URL)/$(GCP_PROJECT_ID)/jarvis/opa:test \
  		-t $(GCR_URL)/$(GCP_PROJECT_ID)/jarvis/opa:$(SHORT_SHA) \
  		--build-arg SHORT_SHA=$(SHORT_SHA) \
