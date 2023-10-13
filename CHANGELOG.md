@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/indykite/opa-indykite-plugin/compare/v1.1.1...v1.1.2) (2023-10-13)
+
+
+### Miscellaneous Chores
+
+* add correct docker tags ([b3ca9c1](https://github.com/indykite/opa-indykite-plugin/commit/b3ca9c16f01e26b0b2c64b4c45953c83d19d6940))
+
 ## [1.1.1](https://github.com/indykite/opa-indykite-plugin/compare/v1.1.0...v1.1.1) (2023-10-13)
 
 
