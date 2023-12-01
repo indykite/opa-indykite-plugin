@@ -150,7 +150,7 @@ var _ = Describe("indy.is_authorized", func() {
 			respTTL:             durationpb.New(time.Minute * 90),
 			decisionTimeMatcher: BeEquivalentTo("1645543102"), // All numbers are json.Number ie string
 			ttlMatcher:          BeEquivalentTo("5400"),
-			regoParam1:          `{"id": "` + testAccessToken + `", "type": "token"}`,
+			regoParam1:          `{"id": "` + testAccessToken + `", "subjectType": "token"}`,
 		}),
 		Entry("DigitalTwin id", &dtIDCase{
 			reqSubject: &authorizationpb.Subject{
@@ -164,7 +164,7 @@ var _ = Describe("indy.is_authorized", func() {
 			respTTL:             durationpb.New(time.Minute * 90),
 			decisionTimeMatcher: BeEquivalentTo("1645543102"), // All numbers are json.Number ie string
 			ttlMatcher:          BeEquivalentTo("5400"),
-			regoParam1:          `{"id": "gid:AAAAFezuHiJHiUeRjrIJV8k3oKo", "type": "id"}`,
+			regoParam1:          `{"id": "gid:AAAAFezuHiJHiUeRjrIJV8k3oKo", "subjectType": "id"}`,
 		}),
 		Entry("DigitalTwin property", &dtIDCase{
 			reqSubject: &authorizationpb.Subject{
@@ -179,7 +179,22 @@ var _ = Describe("indy.is_authorized", func() {
 			respTTL:             durationpb.New(time.Minute * 90),
 			decisionTimeMatcher: BeEquivalentTo("1645543102"), // All numbers are json.Number ie string
 			ttlMatcher:          BeEquivalentTo("5400"),
-			regoParam1:          `{"id": "sam@sung.com", "type": "property", "property": "email"}`,
+			regoParam1:          `{"id": "sam@sung.com", "subjectType": "property", "property": "email"}`,
+		}),
+		Entry("DigitalTwin externalID", &dtIDCase{
+			reqSubject: &authorizationpb.Subject{
+				Subject: &authorizationpb.Subject_ExternalId{
+					ExternalId: &authorizationpb.ExternalID{
+						Type:       "Person",
+						ExternalId: "some-external-id",
+					},
+				},
+			},
+			respDecisionTime:    timestamppb.New(time.Date(2022, 02, 22, 15, 18, 22, 0, time.UTC)),
+			respTTL:             durationpb.New(time.Minute * 90),
+			decisionTimeMatcher: BeEquivalentTo("1645543102"), // All numbers are json.Number ie string
+			ttlMatcher:          BeEquivalentTo("5400"),
+			regoParam1:          `{"id": "some-external-id", "subjectType": "external_id", "type": "Person"}`,
 		}),
 	)
 
@@ -218,10 +233,10 @@ var _ = Describe("indy.is_authorized", func() {
 		Entry("Empty resource_references", `{"id": "`+testAccessToken+`"}, [], {}`,
 			"unable to call IsAuthorized client endpoint",
 			"invalid IsAuthorizedRequest.Resources: value must contain between 1 and 32 items, inclusive"),
-		Entry("Invalid digital twin", `{"id": "abc", "type": "id"}, [{"externalId": "res1", "type": "Type", "actions": ["READ"]}, {"externalId": "res2", "type": "Type", "actions": ["READ"]}], {}`,
+		Entry("Invalid digital twin", `{"id": "abc", "subjectType": "id"}, [{"externalId": "res1", "type": "Type", "actions": ["READ"]}, {"externalId": "res2", "type": "Type", "actions": ["READ"]}], {}`,
 			"unable to call IsAuthorized client endpoint",
 			"invalid DigitalTwin.Id: value length must be between 27 and 100 runes"),
-		Entry("Invalid propertyType", `{"id": "", "type": "property", "property": ""}, [{"externalId": "res1", "type": "Type", "actions": ["READ"]}, {"externalId": "res2", "type": "Type", "actions": ["READ"]}], {}`,
+		Entry("Invalid propertyType", `{"id": "", "subjectType": "property", "property": ""}, [{"externalId": "res1", "type": "Type", "actions": ["READ"]}, {"externalId": "res2", "type": "Type", "actions": ["READ"]}], {}`,
 			"unable to call IsAuthorized client endpoint",
 			"invalid Property.Type: value length must be between 2 and 20 runes"),
 	)

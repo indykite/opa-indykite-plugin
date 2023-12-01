@@ -172,7 +172,7 @@ var _ = Describe("indy.what_authorized", func() {
 			respTTL:             durationpb.New(time.Minute * 90),
 			decisionTimeMatcher: BeEquivalentTo("1645543102"), // All numbers are json.Number ie string
 			ttlMatcher:          BeEquivalentTo("5400"),
-			regoParam1:          `{"id": "` + testAccessToken + `", "type": "token"}`,
+			regoParam1:          `{"id": "` + testAccessToken + `", "subjectType": "token"}`,
 		}),
 		Entry("DigitalTwin", &dtIDCase{
 			reqSubject: &authorizationpb.Subject{
@@ -187,7 +187,7 @@ var _ = Describe("indy.what_authorized", func() {
 			respTTL:             nil,
 			decisionTimeMatcher: BeEquivalentTo("0"),
 			ttlMatcher:          BeEquivalentTo("0"),
-			regoParam1:          `{"id": "gid:AAAAFezuHiJHiUeRjrIJV8k3oKo", "type": "id"}`,
+			regoParam1:          `{"id": "gid:AAAAFezuHiJHiUeRjrIJV8k3oKo", "subjectType": "id"}`,
 		}),
 		Entry("DigitalTwin property", &dtIDCase{
 			reqSubject: &authorizationpb.Subject{
@@ -203,7 +203,23 @@ var _ = Describe("indy.what_authorized", func() {
 			respTTL:             nil,
 			decisionTimeMatcher: BeEquivalentTo("0"),
 			ttlMatcher:          BeEquivalentTo("0"),
-			regoParam1:          `{"id": "sam@sung.com", "type": "property", "property": "email"}`,
+			regoParam1:          `{"id": "sam@sung.com", "subjectType": "property", "property": "email"}`,
+		}),
+		Entry("DigitalTwin externalID", &dtIDCase{
+			reqSubject: &authorizationpb.Subject{
+				Subject: &authorizationpb.Subject_ExternalId{
+					ExternalId: &authorizationpb.ExternalID{
+						Type:       "Person",
+						ExternalId: "some-external-id",
+					},
+				},
+			},
+			// Test also nil values
+			respDecisionTime:    nil,
+			respTTL:             nil,
+			decisionTimeMatcher: BeEquivalentTo("0"),
+			ttlMatcher:          BeEquivalentTo("0"),
+			regoParam1:          `{"id": "some-external-id", "subjectType": "external_id", "type": "Person"}`,
 		}),
 	)
 
@@ -239,10 +255,10 @@ var _ = Describe("indy.what_authorized", func() {
 		Entry("Empty resource_references", `{"id": "`+testAccessToken+`"}, [], {}`,
 			"unable to call WhatAuthorized client endpoint",
 			"invalid WhatAuthorizedRequest.ResourceTypes: value must contain between 1 and 10 items, inclusive"),
-		Entry("Invalid digital twin", `{"id": "abc", "type": "id"}, [{"type": "Type", "actions": ["READ"]}], {}`,
+		Entry("Invalid digital twin", `{"id": "abc", "subjectType": "id"}, [{"type": "Type", "actions": ["READ"]}], {}`,
 			"unable to call WhatAuthorized client endpoint",
 			"invalid DigitalTwin.Id: value length must be between 27 and 100 runes"),
-		Entry("Invalid propertyType", `{"id": "", "type": "property", "property": ""}, [{"type": "Type", "actions": ["READ"]}, {"type": "Type", "actions": ["READ"]}], {}`,
+		Entry("Invalid propertyType", `{"id": "", "subjectType": "property", "property": ""}, [{"type": "Type", "actions": ["READ"]}, {"type": "Type", "actions": ["READ"]}], {}`,
 			"unable to call WhatAuthorized client endpoint",
 			"invalid Property.Type: value length must be between 2 and 20 runes"),
 	)

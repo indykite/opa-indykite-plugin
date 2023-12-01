@@ -26,6 +26,7 @@ const policyTagsKey = "policyTags"
 const subjectTypeToken = "token"
 const subjectTypeID = "id"
 const subjectTypeProperty = "property"
+const subjectTypeExternalID = "external_id"
 
 var allowedKeyNames = [...]string{
 	inputParamsKey,
@@ -174,6 +175,20 @@ func extractSubject(subjectValue ast.Value, pos int) (*authorizationpb.Subject, 
 				},
 			},
 		}, nil
+	case subjectTypeExternalID:
+		nodeTypeObject := subject.Get(ast.StringTerm("type"))
+		if nodeTypeObject == nil {
+			return nil, builtins.NewOperandTypeErr(pos, subjectValue, "type")
+		}
+		nodeType := nodeTypeObject.Value.(ast.String)
+		return &authorizationpb.Subject{
+			Subject: &authorizationpb.Subject_ExternalId{
+				ExternalId: &authorizationpb.ExternalID{
+					Type:       string(nodeType),
+					ExternalId: string(idValue),
+				},
+			},
+		}, nil
 	}
 
 	// Next line is unreachable. OPA will complain based on declaration of function, when types do not match.
@@ -181,7 +196,7 @@ func extractSubject(subjectValue ast.Value, pos int) (*authorizationpb.Subject, 
 }
 
 func getSubjectType(subject ast.Object) string {
-	typeObject := subject.Get(ast.StringTerm("type"))
+	typeObject := subject.Get(ast.StringTerm("subjectType"))
 	if typeObject == nil {
 		return subjectTypeToken
 	}

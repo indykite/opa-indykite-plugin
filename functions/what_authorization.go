@@ -36,12 +36,17 @@ func init() {
 						}, nil),
 						types.NewObject([]*types.StaticProperty{
 							types.NewStaticProperty("id", types.S),
-							types.NewStaticProperty("type", types.S),
+							types.NewStaticProperty("subjectType", types.S),
 						}, nil),
 						types.NewObject([]*types.StaticProperty{
 							types.NewStaticProperty("id", types.S),
-							types.NewStaticProperty("type", types.S),
+							types.NewStaticProperty("subjectType", types.S),
 							types.NewStaticProperty("property", types.S),
+						}, nil),
+						types.NewObject([]*types.StaticProperty{
+							types.NewStaticProperty("id", types.S),
+							types.NewStaticProperty("subjectType", types.S),
+							types.NewStaticProperty("type", types.S),
 						}, nil),
 					)),
 					types.Named("resourcesTypes", types.NewArray(nil, types.NewAny(
