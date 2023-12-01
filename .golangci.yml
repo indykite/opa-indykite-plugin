@@ -141,3 +141,10 @@ issues:
               - govet
           text: 'fieldalignment:'
           path: .*_test.go$
+
+        # We want to allow import gomega and ginkgo (+ all sub-packages) in tests files only
+        - linters:
+              - revive
+          text: '^dot-imports:'
+          source: . "github.com/onsi/(gomega|ginkgo)(/.*)?"
+          path: .*_test.go
