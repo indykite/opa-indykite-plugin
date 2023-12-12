@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0](https://github.com/indykite/opa-indykite-plugin/compare/v1.1.2...v1.2.0) (2023-12-12)
+
+
+### Features
+
+* identify subject by external_id ([9f1044c](https://github.com/indykite/opa-indykite-plugin/commit/9f1044c989213fd68b26548b241e7f5b617ccfb8))
+
+
+### Miscellaneous Chores
+
+* **deps:** update everything ([67f7ffc](https://github.com/indykite/opa-indykite-plugin/commit/67f7ffcb6d84580c0a3ce1959f672d449645444f))
+
 ## [1.1.2](https://github.com/indykite/opa-indykite-plugin/compare/v1.1.1...v1.1.2) (2023-10-13)
 
 
