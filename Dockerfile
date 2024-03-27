@@ -1,5 +1,5 @@
 #https://github.com/docker-library/repo-info/blob/master/repos/golang/remote/1.20.6-bullseye.md
-FROM golang:1.21.5-bullseye@sha256:ca78a56712ab89487123b3af2b30052824653730e7ff25271d2f3037153bc0df AS build-env
+FROM golang:1.22.1-bullseye@sha256:dcff0d950cb4648fec14ee51baa76bf27db3bb1e70a49f75421a8828db7b9910 AS build-env
 
 ARG SHORT_SHA=0000000
 ARG TAG_NAME
@@ -19,7 +19,7 @@ RUN go build -mod mod -o opa -ldflags "-w -s \
     -X github.com/open-policy-agent/opa/version.Hostname=${SERVICE_NAME}" .
 
 # gcr.io/distroless/base-debian11:nonroot
-FROM gcr.io/distroless/base-debian11:nonroot@sha256:9707f365e1f5ec65e4dc7c9b03fa92082f09ac9632686713a9d9065d4d0fd0ff
+FROM gcr.io/distroless/base-debian11:nonroot@sha256:1a8ece87bd75cde87d0484ef48eb60ea25811baf90967265956ae4fa2098dd9d
 
 ARG BUILD_DATE=2000-01-01T00:00:00:00Z
 ARG GIT_CLOSEST_TAG=develop
