@@ -7,4 +7,4 @@ name = "docker"
 name = "go"
 
   [analyzers.meta]
-  import_root = "github.com/indykite/opa-indykite-plugin"v
+  import_root = "github.com/indykite/opa-indykite-plugin"
