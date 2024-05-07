@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/indykite/opa-indykite-plugin/compare/v1.2.0...v1.2.1) (2024-05-07)
+
+
+### Miscellaneous Chores
+
+* create .deepsource.toml ([6c7b36b](https://github.com/indykite/opa-indykite-plugin/commit/6c7b36bb31147f0be0682a05650a1d80ec6011e9))
+
 ## [1.2.0](https://github.com/indykite/opa-indykite-plugin/compare/v1.1.2...v1.2.0) (2023-12-12)
 
 
