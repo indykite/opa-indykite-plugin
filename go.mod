@@ -2,20 +2,20 @@ module github.com/indykite/opa-indykite-plugin
 
 go 1.21
 
-toolchain go1.21.0
+toolchain go1.22.4
 
 exclude github.com/ory/cli v0.0.49
 
 require (
-	github.com/indykite/indykite-sdk-go v0.20.0
+	github.com/indykite/indykite-sdk-go v0.31.0
 	github.com/json-iterator/go v1.1.12
-	github.com/onsi/ginkgo/v2 v2.13.2
-	github.com/onsi/gomega v1.30.0
-	github.com/open-policy-agent/opa v0.59.0
+	github.com/onsi/ginkgo/v2 v2.19.0
+	github.com/onsi/gomega v1.33.1
+	github.com/open-policy-agent/opa v0.66.0
 	github.com/sirupsen/logrus v1.9.3
-	go.uber.org/mock v0.3.0
-	google.golang.org/genproto v0.0.0-20231127180814-3a041ad873d4
-	google.golang.org/grpc v1.59.0
+	go.uber.org/mock v0.4.0
+	google.golang.org/genproto f6361c86f094
+	google.golang.org/grpc v1.64.0
 	google.golang.org/protobuf v1.31.0
 )
 
