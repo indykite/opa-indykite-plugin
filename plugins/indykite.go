@@ -21,14 +21,11 @@ import (
 	"sync"
 
 	"github.com/indykite/indykite-sdk-go/authorization"
-	api "github.com/indykite/indykite-sdk-go/grpc"
 	"github.com/indykite/indykite-sdk-go/grpc/config"
-	"github.com/indykite/indykite-sdk-go/identity"
 	json "github.com/json-iterator/go"
 	"github.com/open-policy-agent/opa/plugins"
 	"github.com/open-policy-agent/opa/plugins/logs"
 	"github.com/open-policy-agent/opa/runtime"
-	"github.com/sirupsen/logrus"
 )
 
 func init() {
@@ -36,7 +33,6 @@ func init() {
 }
 
 var (
-	lock          = sync.RWMutex{}
 	defaultPlugin *IndyKitePlugin
 )
 
@@ -58,7 +54,6 @@ type (
 	IndyKitePlugin struct {
 		manager             *plugins.Manager
 		config              *Config
-		identityClient      *identity.Client
 		authorizationClient *authorization.Client
 		mtx                 sync.Mutex
 	}
@@ -108,28 +103,7 @@ func (factory) Validate(_ *plugins.Manager, configData []byte) (interface{}, err
 
 // Start plugin based on its configuration.
 func (p *IndyKitePlugin) Start(ctx context.Context) (err error) {
-	var options []api.ClientOption
-	if p.config.UseEnvVariables {
-		options = append(options, api.WithCredentialsLoader(config.DefaultEnvironmentLoader))
-	} else {
-		options = append(options, api.WithCredentialsLoader(config.StaticCredentialConfig(p.config.credConfig)))
-	}
-	p.identityClient, err = identity.NewClient(ctx, options...)
-	if err != nil {
-		logrus.WithError(err).WithFields(logrus.Fields{"plugin": PluginName}).
-			Info("failed to connect to IndyKite Identity client")
-		return err
-	}
-	p.authorizationClient, err = authorization.NewClient(ctx, options...)
-	if err != nil {
-		logrus.WithError(err).WithFields(logrus.Fields{"plugin": PluginName}).
-			Info("failed to connect to IndyKite Authorization client")
-		return err
-	}
-	lock.Lock()
-	defaultPlugin = p
-	lock.Unlock()
-	p.manager.UpdatePluginStatus(PluginName, &plugins.Status{State: plugins.StateOK})
+	_ = p.Log(ctx, logs.EventV1{})
 	return nil
 }
 
@@ -154,11 +128,6 @@ func (p *IndyKitePlugin) Log(ctx context.Context, event logs.EventV1) error {
 		p.manager.UpdatePluginStatus(PluginName, &plugins.Status{State: plugins.StateErr})
 	}
 	return nil
-}
-
-// IdentityClient returns IndyKite identity client created from plugin configuration.
-func (p *IndyKitePlugin) IdentityClient() *identity.Client {
-	return p.identityClient
 }
 
 // AuthorizationClient returns IndyKite authorization client created from plugin configuration.
