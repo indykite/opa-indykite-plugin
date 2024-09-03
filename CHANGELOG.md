@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.5](https://github.com/indykite/opa-indykite-plugin/compare/v1.2.4...v1.2.5) (2024-09-03)
+
+
+### Miscellaneous Chores
+
+* update base docker image ([ba4bd6b](https://github.com/indykite/opa-indykite-plugin/commit/ba4bd6b34a393bd5e7f85fb89e2b6b1d88aae320))
+
 ## [1.2.4](https://github.com/indykite/opa-indykite-plugin/compare/v1.2.3...v1.2.4) (2024-09-03)
 
 
