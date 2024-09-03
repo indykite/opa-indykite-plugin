@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.4](https://github.com/indykite/opa-indykite-plugin/compare/v1.2.3...v1.2.4) (2024-09-03)
+
+
+### Miscellaneous Chores
+
+* update release workflow ([08fda0d](https://github.com/indykite/opa-indykite-plugin/commit/08fda0d09d30de42a01f009d71ee15b86ffc0d01))
+
 ## [1.2.3](https://github.com/indykite/opa-indykite-plugin/compare/v1.2.2...v1.2.3) (2024-09-03)
 
 
