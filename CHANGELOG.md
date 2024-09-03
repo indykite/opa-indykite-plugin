@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.3](https://github.com/indykite/opa-indykite-plugin/compare/v1.2.2...v1.2.3) (2024-09-03)
+
+
+### Miscellaneous Chores
+
+* fix ARTIFACT_REGISTRY var ref ([82bc4bf](https://github.com/indykite/opa-indykite-plugin/commit/82bc4bf313acefee16e045825c16afff2abd8b41))
+
 ## [1.2.2](https://github.com/indykite/opa-indykite-plugin/compare/v1.2.1...v1.2.2) (2024-09-03)
 
 
