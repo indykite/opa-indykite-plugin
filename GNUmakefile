@@ -51,7 +51,11 @@ opa-ci:
  		--build-arg BUILD_DATE=$(NOW) \
  		--build-arg TAG_NAME=$(GITHUB_REF) \
  		.
+	@docker buildx rm opabuilder
+
 # TODO replace the block above after the migration to new GCP project		
+opa-ci-new:
+	@docker buildx create --name opabuilder --use
 	@docker buildx build --push \
 		--platform linux/amd64,linux/arm64 \
 		-t indykite/opa:latest \
