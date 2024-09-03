@@ -1,5 +1,5 @@
-#https://github.com/docker-library/repo-info/blob/master/repos/golang/remote/1.20.6-bullseye.md
-FROM golang:1.21.5-bullseye@sha256:ca78a56712ab89487123b3af2b30052824653730e7ff25271d2f3037153bc0df AS build-env
+#https://github.com/docker-library/repo-info/blob/master/repos/golang/remote/bullseye.md
+FROM golang@sha256:ecef8303ced05b7cd1addf3c8ea98974f9231d4c5a0c230d23b37bb623714a23 AS build-env
 
 ARG SHORT_SHA=0000000
 ARG TAG_NAME
