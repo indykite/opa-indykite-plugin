@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/indykite/opa-indykite-plugin/compare/v1.2.1...v1.2.2) (2024-09-03)
+
+
+### Miscellaneous Chores
+
+* prep work for migration to artifact registry ([b62c856](https://github.com/indykite/opa-indykite-plugin/commit/b62c85671b1aa44e96e268ae507dc85f880ae68b))
+
 ## [1.2.1](https://github.com/indykite/opa-indykite-plugin/compare/v1.2.0...v1.2.1) (2024-08-13)
 
 
