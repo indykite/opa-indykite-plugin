@@ -15,7 +15,7 @@ jobs:
         name: Build and publish docker container to gcr.io and dockerhub
         runs-on: ubuntu-latest
         env:
-            ARTIFACTORY_URL: europe-west1-docker.pkg.dev
+            ARTIFACT_REGISTRY_URL: europe-west1-docker.pkg.dev
             GCP_PROJECT_ID_MGMT: ${{ secrets.GCP_PROJECT_ID_MGMT }}
             GCR_URL: gcr.io # TODO remove after migration
             GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }} # TODO remove after migration
@@ -50,7 +50,7 @@ jobs:
                     service_account: "github@${{ env.GCP_PROJECT_ID_MGMT }}.iam.gserviceaccount.com"
             -   name: Configure Docker
                 run: |
-                    gcloud auth configure-docker ${{ ARTIFACTORY_URL }} -q
+                    gcloud auth configure-docker $ARTIFACT_REGISTRY_URL -q
 
             -   name: Login to Docker Hub
                 uses: docker/login-action@v3
