@@ -25,7 +25,7 @@ import (
 )
 
 func init() {
-	rego.RegisterBuiltin3(
+	rego.RegisterBuiltin4(
 		&rego.Function{
 			Name: "indy.what_authorized",
 			Decl: types.NewFunction(
@@ -58,7 +58,8 @@ func init() {
 							types.NewStaticProperty("actions", types.NewArray(nil, types.S)),
 						}, nil),
 					))),
-					types.Named("options", types.NewObject(nil, types.NewDynamicProperty(types.S, types.A))),
+					types.Named(inputParamsKey, types.NewObject(nil, types.NewDynamicProperty(types.S, types.A))),
+					types.Named(policyTagsKey, types.NewArray(nil, types.S)),
 				),
 				types.Named("authorizationResponse", types.NewObject([]*types.StaticProperty{
 					types.NewStaticProperty("decisionTime", types.N),
@@ -74,34 +75,38 @@ func init() {
 				}, nil)),
 			),
 		},
-		func(bCtx rego.BuiltinContext, subject, resources, options *ast.Term) (*ast.Term, error) {
-			optionsObj, err := validateOptionOperand(options, 2)
-			if err != nil {
-				return nil, err
-			}
+		func(bCtx rego.BuiltinContext, subject, resourceTypes, inputParams, policyTags *ast.Term) (*ast.Term, error) {
+			var (
+				err error
+				req = &authorizationpb.WhatAuthorizedRequest{}
+			)
 
-			req := &authorizationpb.WhatAuthorizedRequest{}
-			req.PolicyTags = parsePolicyTags(optionsObj)
-			req.InputParams, err = parseInputParams(optionsObj)
-			if err != nil {
-				return nil, err
-			}
-			if err = ast.As(resources.Value, &req.ResourceTypes); err != nil {
-				return nil, err
-			}
 			req.Subject, err = extractSubject(subject.Value, 1)
 			if err != nil {
 				return nil, err
 			}
 
+			if err = ast.As(resourceTypes.Value, &req.ResourceTypes); err != nil {
+				return nil, err
+			}
+
+			req.InputParams, err = utilities.ParseInputParams(inputParams, 3)
+			if err != nil {
+				return nil, err
+			}
+
+			req.PolicyTags = parsePolicyTags(policyTags)
+
 			client, err := AuthorizationClient(bCtx.Context)
 			if err != nil {
 				return nil, err
 			}
-			var resp *authorizationpb.WhatAuthorizedResponse
-			resp, err = client.WhatAuthorizedWithRawRequest(bCtx.Context, req)
-			var obj ast.Object
 
+			var (
+				resp *authorizationpb.WhatAuthorizedResponse
+				obj  ast.Object
+			)
+			resp, err = client.WhatAuthorizedWithRawRequest(bCtx.Context, req)
 			if statusErr := errors.FromError(err); statusErr != nil {
 				if errors.IsServiceError(statusErr) {
 					return nil, statusErr

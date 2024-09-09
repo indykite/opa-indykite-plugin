@@ -45,100 +45,22 @@ func createAllowedKeys() {
 	}
 }
 
-func validateOptionOperand(term *ast.Term, pos int) (ast.Object, error) {
-	obj, err := builtins.ObjectOperand(term.Value, pos)
-	if err != nil {
-		return nil, err
+func parsePolicyTags(options *ast.Term) []string {
+	if options == nil {
+		return nil
 	}
 
-	requestKeys := ast.NewSet(obj.Keys()...)
-
-	invalidKeys := requestKeys.Diff(allowedKeys)
-	if invalidKeys.Len() != 0 {
-		return nil, builtins.NewOperandErr(pos, "invalid request parameters(s): %v", invalidKeys)
-	}
-
-	return obj, nil
-}
-
-func parsePolicyTags(options ast.Object) []string {
-	var result []string
-
-	policyTagsValueTerm := getOptionsValue(options, policyTagsKey)
-	if policyTagsValueTerm == nil {
-		return result
-	}
-
-	policyTagsArray, ok := policyTagsValueTerm.Value.(*ast.Array)
+	policyTagsArray, ok := options.Value.(*ast.Array)
 	if !ok {
-		return result
+		return nil
 	}
 
-	policyTagsArray.Foreach(func(t *ast.Term) {
-		switch v := t.Value.(type) {
-		case ast.String:
-			result = append(result, string(v))
-		default:
-			return
-		}
+	result := make([]string, 0, policyTagsArray.Len())
+	policyTagsArray.Foreach(func(value *ast.Term) {
+		result = append(result, string(value.Value.(ast.String)))
 	})
 
 	return result
-}
-
-func parseInputParams(options ast.Object) (map[string]*authorizationpb.InputParam, error) {
-	result := map[string]*authorizationpb.InputParam{}
-
-	inputParamsValueTerm := getOptionsValue(options, inputParamsKey)
-	if inputParamsValueTerm == nil {
-		return result, nil
-	}
-
-	inputParamObj, ok := inputParamsValueTerm.Value.(ast.Object)
-	if !ok {
-		return result, nil
-	}
-
-	for _, key := range inputParamObj.Keys() {
-		inputParamKey := string(key.Value.(ast.String))
-		inputParamValue, err := parseInputParam(inputParamsValueTerm.Get(key))
-		if err != nil {
-			return nil, err
-		}
-		result[inputParamKey] = inputParamValue
-	}
-
-	return result, nil
-}
-
-func getOptionsValue(options ast.Object, key string) *ast.Term {
-	for _, k := range options.Keys() {
-		if string(k.Value.(ast.String)) == key {
-			return options.Get(k)
-		}
-	}
-	return nil
-}
-
-func parseInputParam(value *ast.Term) (*authorizationpb.InputParam, error) {
-	switch v := value.Value.(type) {
-	case ast.String:
-		return &authorizationpb.InputParam{Value: &authorizationpb.InputParam_StringValue{StringValue: string(v)}}, nil
-	case ast.Number:
-		if integerValue, isNumber := v.Int64(); isNumber {
-			return &authorizationpb.InputParam{
-				Value: &authorizationpb.InputParam_IntegerValue{IntegerValue: integerValue},
-			}, nil
-		} else if doubleValue, isDouble := v.Float64(); isDouble {
-			return &authorizationpb.InputParam{
-				Value: &authorizationpb.InputParam_DoubleValue{DoubleValue: doubleValue},
-			}, nil
-		}
-	case ast.Boolean:
-		return &authorizationpb.InputParam{Value: &authorizationpb.InputParam_BoolValue{BoolValue: bool(v)}}, nil
-	}
-	// Next line is unreachable. OPA will complain based on declaration of function, when types do not match.
-	return nil, builtins.NewOperandTypeErr(3, value.Value, "string", "number", "boolean")
 }
 
 func extractSubject(subjectValue ast.Value, pos int) (*authorizationpb.Subject, error) {
@@ -154,8 +76,8 @@ func extractSubject(subjectValue ast.Value, pos int) (*authorizationpb.Subject, 
 
 	switch getSubjectType(subject) {
 	case subjectTypeToken:
-		return &authorizationpb.Subject{Subject: &authorizationpb.Subject_IndykiteAccessToken{
-			IndykiteAccessToken: string(idValue),
+		return &authorizationpb.Subject{Subject: &authorizationpb.Subject_AccessToken{
+			AccessToken: string(idValue),
 		}}, nil
 	case subjectTypeID:
 		return &authorizationpb.Subject{Subject: &authorizationpb.Subject_DigitalTwinId{
