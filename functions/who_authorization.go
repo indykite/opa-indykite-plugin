@@ -29,7 +29,7 @@ import (
 )
 
 func init() {
-	rego.RegisterBuiltin2(
+	rego.RegisterBuiltin3(
 		&rego.Function{
 			Name: "indy.who_authorized",
 			Decl: types.NewFunction(
@@ -39,7 +39,8 @@ func init() {
 						types.NewStaticProperty("type", types.S),
 						types.NewStaticProperty("actions", types.NewArray(nil, types.S)),
 					}, nil))),
-					types.Named("options", types.NewObject(nil, types.NewDynamicProperty(types.S, types.A))),
+					types.Named(inputParamsKey, types.NewObject(nil, types.NewDynamicProperty(types.S, types.A))),
+					types.Named(policyTagsKey, types.NewArray(nil, types.S)),
 				),
 				types.Named("authorizationResponse", types.NewObject([]*types.StaticProperty{
 					types.NewStaticProperty("decisionTime", types.N),
@@ -58,30 +59,34 @@ func init() {
 				}, nil)),
 			),
 		},
-		func(bCtx rego.BuiltinContext, resources, options *ast.Term) (*ast.Term, error) {
-			optionsObj, err := validateOptionOperand(options, 2)
-			if err != nil {
-				return nil, err
-			}
+		func(bCtx rego.BuiltinContext, resources, inputParams, policyTags *ast.Term) (*ast.Term, error) {
+			var (
+				err error
+				req = &authorizationpb.WhoAuthorizedRequest{}
+			)
 
-			req := &authorizationpb.WhoAuthorizedRequest{}
-			req.PolicyTags = parsePolicyTags(optionsObj)
-			req.InputParams, err = parseInputParams(optionsObj)
-			if err != nil {
-				return nil, err
-			}
 			req.Resources, err = parseWhoResources(resources, 1)
 			if err != nil {
 				return nil, err
 			}
+
+			req.InputParams, err = utilities.ParseInputParams(inputParams, 2)
+			if err != nil {
+				return nil, err
+			}
+
+			req.PolicyTags = parsePolicyTags(policyTags)
+
 			client, err := AuthorizationClient(bCtx.Context)
 			if err != nil {
 				return nil, err
 			}
-			var resp *authorizationpb.WhoAuthorizedResponse
-			resp, err = client.WhoAuthorized(bCtx.Context, req)
-			var obj ast.Object
 
+			var (
+				resp *authorizationpb.WhoAuthorizedResponse
+				obj  ast.Object
+			)
+			resp, err = client.WhoAuthorized(bCtx.Context, req)
 			if statusErr := errors.FromError(err); statusErr != nil {
 				if errors.IsServiceError(statusErr) {
 					return nil, statusErr
