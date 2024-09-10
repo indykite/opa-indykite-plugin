@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/indykite/opa-indykite-plugin/compare/v1.2.5...v1.3.0) (2024-09-10)
+
+
+### Features
+
+* support access token and new inputParams structure ([6854c2a](https://github.com/indykite/opa-indykite-plugin/commit/6854c2a02ed9452f6cd8f4d5448a6ebb0721a5a5))
+
 ## [1.2.5](https://github.com/indykite/opa-indykite-plugin/compare/v1.2.4...v1.2.5) (2024-09-03)
 
 
