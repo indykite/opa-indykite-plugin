@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1](https://github.com/indykite/opa-indykite-plugin/compare/v1.3.0...v1.3.1) (2025-03-13)
+
+
+### Miscellaneous Chores
+
+* **deps:** bump golang.org/x/crypto to 0.31.0 ([3cecb44](https://github.com/indykite/opa-indykite-plugin/commit/3cecb44c2af3f38d8dd2898246ea5169772efb94))
+* **deps:** bump golang.org/x/net to 0.33.0 ([94e800b](https://github.com/indykite/opa-indykite-plugin/commit/94e800b28b04c4babf75080e2cfbe5393ec9dff9))
+
 ## [1.3.0](https://github.com/indykite/opa-indykite-plugin/compare/v1.2.5...v1.3.0) (2024-09-10)
 
 
