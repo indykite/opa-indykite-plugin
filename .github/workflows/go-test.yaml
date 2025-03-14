@@ -52,7 +52,7 @@ jobs:
               uses: actions/checkout@v4
             - name: Create .trivyignore file
               run: echo '${{ vars.TRIVY_IGNORE }}' > .trivyignore
-            - uses: aquasecurity/trivy-action@0.16.0
+            - uses: aquasecurity/trivy-action@0.30.0
               with:
                   scan-type: config
                   # Scan only directory, where Dockerfiles are, until Trivy issue is fixed
